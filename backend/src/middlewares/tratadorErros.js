@@ -12,7 +12,7 @@ const MENSAGENS_DUPLICIDADE = {
  * * DATE: 11/10/2026 14:41
  * * OBJECTIVE: Responder 404 no formato padrão quando nenhuma rota atende a requisição.
  */
-function rotaNaoEncontrada (req, res) {
+function rotaNaoEncontrada(req, res) {
   return res.status(404).json({ erro: 'rota não encontrada' });
 }
 
@@ -21,7 +21,7 @@ function rotaNaoEncontrada (req, res) {
  * * DATE: 11/10/2026 14:41
  * * OBJECTIVE: Converter qualquer erro da API em uma resposta no formato padrão { erro }.
  */
-function tratarErros (AErro, req, res, next) {
+function tratarErros(AErro, req, res, next) {
   if (res.headersSent) {
     return next(AErro);
   }
@@ -29,10 +29,13 @@ function tratarErros (AErro, req, res, next) {
     return res.status(AErro.status).json({ erro: AErro.message });
   }
   if (AErro.type === JSON_INVALIDO) {
-    return res.status(400).json({ erro: 'o corpo da requisição não é um JSON válido' });
+    return res
+      .status(400)
+      .json({ erro: 'o corpo da requisição não é um JSON válido' });
   }
   if (AErro.code === REGISTRO_DUPLICADO) {
-    const LMensagem = MENSAGENS_DUPLICIDADE[AErro.constraint] || 'registro já cadastrado';
+    const LMensagem =
+      MENSAGENS_DUPLICIDADE[AErro.constraint] || 'registro já cadastrado';
     return res.status(409).json({ erro: LMensagem });
   }
   console.error(AErro);
@@ -42,4 +45,4 @@ function tratarErros (AErro, req, res, next) {
 module.exports = {
   rotaNaoEncontrada,
   tratarErros
-}
+};

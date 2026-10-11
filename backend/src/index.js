@@ -2,7 +2,10 @@ require('dotenv').config();
 const express = require('express');
 const app = express();
 const db = require('./configs');
-const { rotaNaoEncontrada, tratarErros } = require('./middlewares/tratadorErros');
+const {
+  rotaNaoEncontrada,
+  tratarErros
+} = require('./middlewares/tratadorErros');
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
@@ -26,5 +29,5 @@ app.use(rotaNaoEncontrada);
 app.use(tratarErros);
 
 app.listen(PORT, () => {
-  console.log(`api rodando na porta ${PORT}`)
+  console.log(`api rodando na porta ${PORT}`);
 });

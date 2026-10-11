@@ -4,7 +4,7 @@
  * * OBJECTIVE: Representar um erro de requisição com o status HTTP e a mensagem devolvidos ao cliente.
  */
 class ErroApi extends Error {
-  constructor (AStatus, AMensagem) {
+  constructor(AStatus, AMensagem) {
     super(AMensagem);
     this.status = AStatus;
   }
