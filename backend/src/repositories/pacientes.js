@@ -45,8 +45,31 @@ async function cadastrarPaciente(ADados) {
   return LResultado.rows[0];
 }
 
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 11/10/2026 16:51
+ * * OBJECTIVE: Atualizar os dados de um paciente e devolver o registro alterado.
+ */
+async function alterarPaciente(AId, ADados) {
+  const LSql = `UPDATE PACIENTE
+                   SET NOME = $1,
+                       TELEFONE = $2,
+                       DATA_NASCIMENTO = $3,
+                       DATA_ATUALIZACAO = NOW()
+                 WHERE IDPACIENTE = $4
+             RETURNING *`;
+  const LResultado = await db.query(LSql, [
+    ADados.nome,
+    ADados.telefone,
+    ADados.data_nascimento,
+    AId
+  ]);
+  return LResultado.rows[0];
+}
+
 module.exports = {
   buscarPacientes,
   buscarPacientePorId,
-  cadastrarPaciente
+  cadastrarPaciente,
+  alterarPaciente
 };

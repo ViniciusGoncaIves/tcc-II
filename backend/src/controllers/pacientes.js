@@ -30,19 +30,32 @@ async function buscarPacientePorId(req, res) {
 /**
  * * AUTHOR: Vinícius Gonçalves
  * * DATE: 11/10/2026 13:26
- * * OBJECTIVE: Validar os campos obrigatórios e cadastrar um novo paciente.
+ * * OBJECTIVE: Cadastrar um novo paciente e devolver o registro criado.
  */
 async function cadastrarPaciente(req, res) {
-  const LDados = req.body || {};
-  if (!LDados.nome || !LDados.telefone) {
-    throw new ErroApi(400, 'campos obrigatórios faltando');
-  }
-  const LPaciente = await service.cadastrarPaciente(LDados);
+  const LPaciente = await service.cadastrarPaciente(req.body);
   return res.status(201).json(LPaciente);
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 11/10/2026 16:51
+ * * OBJECTIVE: Alterar o paciente do id informado ou devolver 404 quando ele não existe.
+ */
+async function alterarPaciente(req, res) {
+  const LPaciente = await service.alterarPaciente(req.params.id, req.body);
+  if (!LPaciente) {
+    throw new ErroApi(
+      404,
+      `O paciente com id ${req.params.id} não foi encontrado`
+    );
+  }
+  return res.status(200).json(LPaciente);
 }
 
 module.exports = {
   buscarPacientes,
   buscarPacientePorId,
-  cadastrarPaciente
+  cadastrarPaciente,
+  alterarPaciente
 };

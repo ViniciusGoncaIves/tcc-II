@@ -27,8 +27,18 @@ async function cadastrarPaciente(ADados) {
   return repository.cadastrarPaciente(ADados);
 }
 
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 11/10/2026 16:51
+ * * OBJECTIVE: Alterar os dados de um paciente e devolver o registro alterado.
+ */
+async function alterarPaciente(AId, ADados) {
+  return repository.alterarPaciente(AId, ADados);
+}
+
 module.exports = {
   buscarPacientes,
   buscarPacientePorId,
-  cadastrarPaciente
+  cadastrarPaciente,
+  alterarPaciente
 };
