@@ -1,48 +1,41 @@
 const service = require('../services/pacientes');
+const ErroApi = require('../errors/ErroApi');
 
-const TELEFONE_DUPLICADO = '23505';
-
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 11/10/2026 13:26
+ * * OBJECTIVE: Devolver a lista de pacientes cadastrados.
+ */
 async function buscarPacientes (req, res) {
-  try {
-    const pacientes = await service.buscarPacientes();
-    return res.status(200).json(pacientes);
-  } catch (erro) {
-    return res.status(500).json({ erro: erro.message });
-  }
+  const LPacientes = await service.buscarPacientes();
+  return res.status(200).json(LPacientes);
 }
 
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 11/10/2026 13:26
+ * * OBJECTIVE: Devolver o paciente do id informado ou 404 quando ele não existe.
+ */
 async function buscarPacientePorId (req, res) {
-  try {
-    const paciente = await service.buscarPacientePorId(req.params.id);
-    if (!paciente) {
-      return res.status(404).json({
-        erro: `O paciente com id ${req.params.id} não foi encontrado`
-      })
-    }
-    return res.status(200).json(paciente);
-  } catch (erro) {
-    return res.status(500).json({ erro: erro.message });
+  const LPaciente = await service.buscarPacientePorId(req.params.id);
+  if (!LPaciente) {
+    throw new ErroApi(404, `O paciente com id ${req.params.id} não foi encontrado`);
   }
+  return res.status(200).json(LPaciente);
 }
 
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 11/10/2026 13:26
+ * * OBJECTIVE: Validar os campos obrigatórios e cadastrar um novo paciente.
+ */
 async function cadastrarPaciente (req, res) {
-  try {
-    const data = req.body;
-    if (!data.nome || !data.telefone) {
-      return res.status(400).json({
-        erro: 'campos obrigatórios faltando'
-      })
-    }
-    const paciente = await service.cadastrarPaciente(data);
-    return res.status(201).json(paciente);
-  } catch (erro) {
-    if (erro.code === TELEFONE_DUPLICADO) {
-      return res.status(409).json({
-        erro: 'já existe um paciente com esse telefone'
-      })
-    }
-    return res.status(500).json({ erro: erro.message });
+  const LDados = req.body || {};
+  if (!LDados.nome || !LDados.telefone) {
+    throw new ErroApi(400, 'campos obrigatórios faltando');
   }
+  const LPaciente = await service.cadastrarPaciente(LDados);
+  return res.status(201).json(LPaciente);
 }
 
 module.exports = {
