@@ -4,7 +4,8 @@ const REGISTRO_DUPLICADO = '23505';
 const JSON_INVALIDO = 'entity.parse.failed';
 
 const MENSAGENS_DUPLICIDADE = {
-  paciente_telefone_key: 'já existe um paciente com esse telefone'
+  paciente_telefone_key: 'já existe um paciente com esse telefone',
+  medicamento_nome_key: 'já existe um medicamento com esse nome'
 };
 
 /**

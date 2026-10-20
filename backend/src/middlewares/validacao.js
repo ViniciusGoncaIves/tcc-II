@@ -64,8 +64,22 @@ function validarFiltroAtivo(req, res, next) {
   return next();
 }
 
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 20/10/2026 20:49
+ * * OBJECTIVE: Barrar a requisição quando o nome do medicamento não foi informado.
+ */
+function validarMedicamento(req, res, next) {
+  const LDados = req.body || {};
+  if (typeof LDados.nome !== 'string' || !LDados.nome.trim()) {
+    throw new ErroApi(400, 'campos obrigatórios faltando');
+  }
+  return next();
+}
+
 module.exports = {
   validarId,
   validarPaciente,
-  validarFiltroAtivo
+  validarFiltroAtivo,
+  validarMedicamento
 };
