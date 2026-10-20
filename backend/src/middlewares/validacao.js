@@ -3,6 +3,7 @@ const ErroApi = require('../errors/ErroApi');
 const FORMATO_UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const FORMATO_DATA = /^\d{4}-\d{2}-\d{2}$/;
+const VALORES_FILTRO_ATIVO = ['true', 'false'];
 
 /**
  * * AUTHOR: Vinícius Gonçalves
@@ -50,7 +51,21 @@ function validarPaciente(req, res, next) {
   return next();
 }
 
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 20/10/2026 19:31
+ * * OBJECTIVE: Barrar a requisição quando o filtro ativo não for true ou false.
+ */
+function validarFiltroAtivo(req, res, next) {
+  const LAtivo = req.query.ativo;
+  if (LAtivo !== undefined && !VALORES_FILTRO_ATIVO.includes(LAtivo)) {
+    throw new ErroApi(400, 'o filtro ativo deve ser true ou false');
+  }
+  return next();
+}
+
 module.exports = {
   validarId,
-  validarPaciente
+  validarPaciente,
+  validarFiltroAtivo
 };

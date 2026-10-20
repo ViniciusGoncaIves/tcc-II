@@ -3,13 +3,14 @@ const db = require('../configs');
 /**
  * * AUTHOR: Vinícius Gonçalves
  * * DATE: 11/10/2026 15:18
- * * OBJECTIVE: Consultar todos os pacientes em ordem alfabética.
+ * * OBJECTIVE: Consultar os pacientes em ordem alfabética, filtrando pela situação quando ela for informada.
  */
-async function buscarPacientes() {
-  const LSql = `SELECT * 
+async function buscarPacientes(AAtivo) {
+  const LSql = `SELECT *
                   FROM PACIENTE
+                 WHERE ($1::BOOLEAN IS NULL OR ATIVO = $1)
                  ORDER BY NOME`;
-  const LResultado = await db.query(LSql);
+  const LResultado = await db.query(LSql, [AAtivo]);
   return LResultado.rows;
 }
 
@@ -67,9 +68,25 @@ async function alterarPaciente(AId, ADados) {
   return LResultado.rows[0];
 }
 
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 20/10/2026 19:31
+ * * OBJECTIVE: Ativar ou inativar um paciente e devolver o registro alterado.
+ */
+async function alterarSituacaoPaciente(AId, AAtivo) {
+  const LSql = `UPDATE PACIENTE
+                   SET ATIVO = $1,
+                       DATA_ATUALIZACAO = NOW()
+                 WHERE IDPACIENTE = $2
+             RETURNING *`;
+  const LResultado = await db.query(LSql, [AAtivo, AId]);
+  return LResultado.rows[0];
+}
+
 module.exports = {
   buscarPacientes,
   buscarPacientePorId,
   cadastrarPaciente,
-  alterarPaciente
+  alterarPaciente,
+  alterarSituacaoPaciente
 };
