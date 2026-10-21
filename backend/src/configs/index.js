@@ -1,4 +1,9 @@
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
+
+const TIPO_DATE = 1082;
+
+// Colunas DATE saem como texto AAAA-MM-DD, sem virar data com horário e fuso.
+types.setTypeParser(TIPO_DATE, (AValor) => AValor);
 
 const pool = new Pool({
   user: process.env.POSTGRES_USER,

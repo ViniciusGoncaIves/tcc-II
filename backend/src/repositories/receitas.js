@@ -1,3 +1,5 @@
+const db = require('../configs');
+
 /**
  * * AUTHOR: Vinícius Gonçalves
  * * DATE: 21/10/2026 19:32
@@ -35,7 +37,22 @@ async function cadastrarItemReceita(AConexao, AIdReceita, AItem) {
   return LResultado.rows[0];
 }
 
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 21/10/2026 20:06
+ * * OBJECTIVE: Contar as receitas ativas de um paciente.
+ */
+async function contarReceitasAtivasPorPaciente(AIdPaciente) {
+  const LSql = `SELECT COUNT(*) AS TOTAL
+                  FROM RECEITA
+                 WHERE IDPACIENTE = $1
+                   AND STATUS = 'ATIVA'`;
+  const LResultado = await db.query(LSql, [AIdPaciente]);
+  return Number(LResultado.rows[0].total);
+}
+
 module.exports = {
   cadastrarReceita,
-  cadastrarItemReceita
+  cadastrarItemReceita,
+  contarReceitasAtivasPorPaciente
 };

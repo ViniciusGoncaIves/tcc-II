@@ -1,4 +1,5 @@
 const repository = require('../repositories/pacientes');
+const receitasRepository = require('../repositories/receitas');
 const ErroApi = require('../errors/ErroApi');
 
 /**
@@ -72,9 +73,15 @@ async function alterarSituacao(AId, AAtivo) {
 /**
  * * AUTHOR: Vinícius Gonçalves
  * * DATE: 20/10/2026 19:31
- * * OBJECTIVE: Inativar um paciente sem apagar o registro.
+ * * OBJECTIVE: Inativar um paciente sem apagar o registro, recusando quando ele tem receita ativa.
  */
 async function inativarPaciente(AId) {
+  if ((await receitasRepository.contarReceitasAtivasPorPaciente(AId)) > 0) {
+    throw new ErroApi(
+      409,
+      'o paciente possui receita ativa e não pode ser inativado'
+    );
+  }
   return alterarSituacao(AId, false);
 }
 
