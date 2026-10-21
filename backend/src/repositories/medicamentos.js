@@ -2,6 +2,33 @@ const db = require('../configs');
 
 /**
  * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 20/10/2026 21:24
+ * * OBJECTIVE: Consultar os medicamentos em ordem alfabética, filtrando pela situação quando ela for informada.
+ */
+async function buscarMedicamentos(AAtivo) {
+  const LSql = `SELECT *
+                  FROM MEDICAMENTO
+                 WHERE ($1::BOOLEAN IS NULL OR ATIVO = $1)
+                 ORDER BY NOME`;
+  const LResultado = await db.query(LSql, [AAtivo]);
+  return LResultado.rows;
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 20/10/2026 21:24
+ * * OBJECTIVE: Consultar um medicamento pelo id.
+ */
+async function buscarMedicamentoPorId(AId) {
+  const LSql = `SELECT *
+                  FROM MEDICAMENTO
+                 WHERE IDMEDICAMENTO = $1`;
+  const LResultado = await db.query(LSql, [AId]);
+  return LResultado.rows[0];
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
  * * DATE: 20/10/2026 20:49
  * * OBJECTIVE: Inserir um medicamento e devolver o registro criado.
  */
@@ -14,5 +41,7 @@ async function cadastrarMedicamento(ADados) {
 }
 
 module.exports = {
+  buscarMedicamentos,
+  buscarMedicamentoPorId,
   cadastrarMedicamento
 };
