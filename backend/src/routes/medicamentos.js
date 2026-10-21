@@ -13,4 +13,16 @@ module.exports = (app) => {
     validarMedicamento,
     controller.cadastrarMedicamento
   );
+  app.put(
+    '/medicamentos/:id',
+    validarId,
+    validarMedicamento,
+    controller.alterarMedicamento
+  );
+  app.delete('/medicamentos/:id', validarId, controller.inativarMedicamento);
+  app.patch(
+    '/medicamentos/:id/reativar',
+    validarId,
+    controller.reativarMedicamento
+  );
 };

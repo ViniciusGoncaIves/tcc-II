@@ -40,8 +40,41 @@ async function cadastrarMedicamento(ADados) {
   return LResultado.rows[0];
 }
 
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 20/10/2026 21:36
+ * * OBJECTIVE: Atualizar o nome e a descrição de um medicamento e devolver o registro alterado.
+ */
+async function alterarMedicamento(AId, ADados) {
+  const LSql = `UPDATE MEDICAMENTO
+                   SET NOME = $1,
+                       DESCRICAO = $2,
+                       DATA_ALTERACAO = NOW()
+                 WHERE IDMEDICAMENTO = $3
+             RETURNING *`;
+  const LResultado = await db.query(LSql, [ADados.nome, ADados.descricao, AId]);
+  return LResultado.rows[0];
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 20/10/2026 21:36
+ * * OBJECTIVE: Ativar ou inativar um medicamento e devolver o registro alterado.
+ */
+async function alterarSituacaoMedicamento(AId, AAtivo) {
+  const LSql = `UPDATE MEDICAMENTO
+                   SET ATIVO = $1,
+                       DATA_ALTERACAO = NOW()
+                 WHERE IDMEDICAMENTO = $2
+             RETURNING *`;
+  const LResultado = await db.query(LSql, [AAtivo, AId]);
+  return LResultado.rows[0];
+}
+
 module.exports = {
   buscarMedicamentos,
   buscarMedicamentoPorId,
-  cadastrarMedicamento
+  cadastrarMedicamento,
+  alterarMedicamento,
+  alterarSituacaoMedicamento
 };

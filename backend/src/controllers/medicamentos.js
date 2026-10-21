@@ -39,8 +39,62 @@ async function cadastrarMedicamento(req, res) {
   return res.status(201).json(LMedicamento);
 }
 
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 20/10/2026 21:36
+ * * OBJECTIVE: Alterar o medicamento do id informado ou devolver 404 quando ele não existe.
+ */
+async function alterarMedicamento(req, res) {
+  const LMedicamento = await service.alterarMedicamento(
+    req.params.id,
+    req.body
+  );
+  if (!LMedicamento) {
+    throw new ErroApi(
+      404,
+      `O medicamento com id ${req.params.id} não foi encontrado`
+    );
+  }
+  return res.status(200).json(LMedicamento);
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 20/10/2026 21:36
+ * * OBJECTIVE: Inativar o medicamento do id informado ou devolver 404 quando ele não existe.
+ */
+async function inativarMedicamento(req, res) {
+  const LMedicamento = await service.inativarMedicamento(req.params.id);
+  if (!LMedicamento) {
+    throw new ErroApi(
+      404,
+      `O medicamento com id ${req.params.id} não foi encontrado`
+    );
+  }
+  return res.status(200).json(LMedicamento);
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 20/10/2026 21:36
+ * * OBJECTIVE: Reativar o medicamento do id informado ou devolver 404 quando ele não existe.
+ */
+async function reativarMedicamento(req, res) {
+  const LMedicamento = await service.reativarMedicamento(req.params.id);
+  if (!LMedicamento) {
+    throw new ErroApi(
+      404,
+      `O medicamento com id ${req.params.id} não foi encontrado`
+    );
+  }
+  return res.status(200).json(LMedicamento);
+}
+
 module.exports = {
   buscarMedicamentos,
   buscarMedicamentoPorId,
-  cadastrarMedicamento
+  cadastrarMedicamento,
+  alterarMedicamento,
+  inativarMedicamento,
+  reativarMedicamento
 };
