@@ -7,6 +7,8 @@ const VALORES_FILTRO_ATIVO = ['true', 'false'];
 const FORMATO_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const TAMANHO_MINIMO_SENHA = 8;
 const TIPOS_USUARIO = ['ADMIN', 'OPERADOR'];
+const INTERVALO_HORAS_MAXIMO = 168;
+const DURACAO_DIAS_MAXIMO = 365;
 
 /**
  * * AUTHOR: Vinícius Gonçalves
@@ -191,6 +193,92 @@ function validarNovaSenha(req, res, next) {
   return next();
 }
 
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 21/10/2026 19:32
+ * * OBJECTIVE: Informar se o valor é um texto no formato UUID.
+ */
+function uuidValido(AValor) {
+  return typeof AValor === 'string' && FORMATO_UUID.test(AValor);
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 21/10/2026 19:32
+ * * OBJECTIVE: Informar se o valor é um número inteiro entre o mínimo e o máximo, inclusive.
+ */
+function inteiroEntre(AValor, AMinimo, AMaximo) {
+  return Number.isInteger(AValor) && AValor >= AMinimo && AValor <= AMaximo;
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 21/10/2026 19:32
+ * * OBJECTIVE: Conferir os dados de um item da receita, lançando 400 com a posição do item no primeiro problema encontrado.
+ */
+function conferirItemReceita(AItem, APosicao) {
+  if (!uuidValido(AItem.idmedicamento)) {
+    throw new ErroApi(400, `item ${APosicao}: o id do medicamento é inválido`);
+  }
+  if (!textoPreenchido(AItem.dose)) {
+    throw new ErroApi(400, `item ${APosicao}: a dose é obrigatória`);
+  }
+  if (!inteiroEntre(AItem.intervalo_horas, 1, INTERVALO_HORAS_MAXIMO)) {
+    throw new ErroApi(
+      400,
+      `item ${APosicao}: o intervalo deve ser um número inteiro de 1 a ${INTERVALO_HORAS_MAXIMO} horas`
+    );
+  }
+  if (!inteiroEntre(AItem.duracao_dias, 1, DURACAO_DIAS_MAXIMO)) {
+    throw new ErroApi(
+      400,
+      `item ${APosicao}: a duração deve ser um número inteiro de 1 a ${DURACAO_DIAS_MAXIMO} dias`
+    );
+  }
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 21/10/2026 19:32
+ * * OBJECTIVE: Montar a chave de medicamento e dose do item, ignorando maiúsculas e espaços, para encontrar itens repetidos na receita.
+ */
+function chaveItemReceita(AItem) {
+  const LDose = AItem.dose.replace(/\s+/g, '').toUpperCase();
+  return `${AItem.idmedicamento.toLowerCase()}|${LDose}`;
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 21/10/2026 19:32
+ * * OBJECTIVE: Barrar a emissão de receita com paciente, observação ou itens inválidos, ou com o mesmo medicamento repetido na mesma dose.
+ */
+function validarReceita(req, res, next) {
+  const LDados = req.body || {};
+  if (!uuidValido(LDados.idpaciente)) {
+    throw new ErroApi(400, 'o id do paciente é inválido');
+  }
+  if (informado(LDados.observacao) && typeof LDados.observacao !== 'string') {
+    throw new ErroApi(400, 'a observação deve ser um texto');
+  }
+  if (!Array.isArray(LDados.itens) || LDados.itens.length === 0) {
+    throw new ErroApi(400, 'a receita deve ter pelo menos um item');
+  }
+  const LChaves = new Set();
+  for (const [LIndice, LItem] of LDados.itens.entries()) {
+    const LPosicao = LIndice + 1;
+    conferirItemReceita(LItem || {}, LPosicao);
+    const LChave = chaveItemReceita(LItem);
+    if (LChaves.has(LChave)) {
+      throw new ErroApi(
+        400,
+        `item ${LPosicao}: o medicamento já foi incluído nesta receita com a mesma dose`
+      );
+    }
+    LChaves.add(LChave);
+  }
+  return next();
+}
+
 module.exports = {
   validarId,
   validarPaciente,
@@ -199,5 +287,6 @@ module.exports = {
   validarCadastroUsuario,
   validarAlteracaoUsuario,
   validarLogin,
-  validarNovaSenha
+  validarNovaSenha,
+  validarReceita
 };

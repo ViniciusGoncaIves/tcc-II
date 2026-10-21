@@ -3,6 +3,7 @@ const autenticacaoRoute = require('./autenticacao');
 const pacientesRoute = require('./pacientes');
 const medicamentosRoute = require('./medicamentos');
 const usuariosRoute = require('./usuarios');
+const receitasRoute = require('./receitas');
 
 module.exports = (app) => {
   autenticacaoRoute(app);
@@ -10,4 +11,5 @@ module.exports = (app) => {
   pacientesRoute(app);
   medicamentosRoute(app);
   usuariosRoute(app);
+  receitasRoute(app);
 };
