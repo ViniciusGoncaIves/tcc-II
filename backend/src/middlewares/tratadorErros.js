@@ -6,7 +6,8 @@ const JSON_INVALIDO = 'entity.parse.failed';
 
 const MENSAGENS_DUPLICIDADE = {
   paciente_telefone_key: 'já existe um paciente com esse telefone',
-  medicamento_nome_key: 'já existe um medicamento com esse nome'
+  medicamento_nome_key: 'já existe um medicamento com esse nome',
+  usuario_email_key: 'já existe um usuário com esse e-mail'
 };
 
 /**

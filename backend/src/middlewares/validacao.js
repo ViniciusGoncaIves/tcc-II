@@ -4,6 +4,9 @@ const FORMATO_UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const FORMATO_DATA = /^\d{4}-\d{2}-\d{2}$/;
 const VALORES_FILTRO_ATIVO = ['true', 'false'];
+const FORMATO_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const TAMANHO_MINIMO_SENHA = 8;
+const TIPOS_USUARIO = ['ADMIN', 'OPERADOR'];
 
 /**
  * * AUTHOR: Vinícius Gonçalves
@@ -86,9 +89,115 @@ function validarMedicamento(req, res, next) {
   return next();
 }
 
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 21/10/2026 12:29
+ * * OBJECTIVE: Informar se o campo foi enviado com algum valor.
+ */
+function informado(AValor) {
+  return AValor !== undefined && AValor !== null && AValor !== '';
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 21/10/2026 12:29
+ * * OBJECTIVE: Informar se a senha tem o tamanho mínimo e não é formada só por espaços.
+ */
+function senhaValida(ASenha) {
+  return textoPreenchido(ASenha) && ASenha.length >= TAMANHO_MINIMO_SENHA;
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 21/10/2026 12:29
+ * * OBJECTIVE: Conferir nome, e-mail, senha e tipo do usuário, lançando 400 no primeiro problema encontrado.
+ */
+function conferirDadosUsuario(ADados, ASenhaObrigatoria) {
+  if (!textoPreenchido(ADados.nome) || !textoPreenchido(ADados.email)) {
+    throw new ErroApi(400, 'campos obrigatórios faltando');
+  }
+  if (!FORMATO_EMAIL.test(ADados.email.trim())) {
+    throw new ErroApi(400, 'o e-mail informado é inválido');
+  }
+  if (
+    (ASenhaObrigatoria || informado(ADados.senha)) &&
+    !senhaValida(ADados.senha)
+  ) {
+    throw new ErroApi(
+      400,
+      `a senha deve ter pelo menos ${TAMANHO_MINIMO_SENHA} caracteres`
+    );
+  }
+  if (
+    informado(ADados.tipo_usuario) &&
+    !TIPOS_USUARIO.includes(ADados.tipo_usuario)
+  ) {
+    throw new ErroApi(400, 'o tipo de usuário deve ser ADMIN ou OPERADOR');
+  }
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 21/10/2026 12:29
+ * * OBJECTIVE: Barrar o cadastro de usuário com dados incompletos ou inválidos; a senha é obrigatória.
+ */
+function validarCadastroUsuario(req, res, next) {
+  conferirDadosUsuario(req.body || {}, true);
+  return next();
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 21/10/2026 12:29
+ * * OBJECTIVE: Barrar a alteração de usuário com dados incompletos ou inválidos; a senha é opcional.
+ */
+function validarAlteracaoUsuario(req, res, next) {
+  conferirDadosUsuario(req.body || {}, false);
+  return next();
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 21/10/2026 12:29
+ * * OBJECTIVE: Barrar o login quando e-mail ou senha não foram informados.
+ */
+function validarLogin(req, res, next) {
+  const LDados = req.body || {};
+  if (!textoPreenchido(LDados.email) || !textoPreenchido(LDados.senha)) {
+    throw new ErroApi(400, 'e-mail e senha são obrigatórios');
+  }
+  return next();
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 21/10/2026 12:29
+ * * OBJECTIVE: Barrar a troca de senha sem a senha atual, com nova senha curta ou igual à atual.
+ */
+function validarNovaSenha(req, res, next) {
+  const LDados = req.body || {};
+  if (!textoPreenchido(LDados.senha_atual)) {
+    throw new ErroApi(400, 'a senha atual é obrigatória');
+  }
+  if (!senhaValida(LDados.nova_senha)) {
+    throw new ErroApi(
+      400,
+      `a nova senha deve ter pelo menos ${TAMANHO_MINIMO_SENHA} caracteres`
+    );
+  }
+  if (LDados.nova_senha === LDados.senha_atual) {
+    throw new ErroApi(400, 'a nova senha deve ser diferente da atual');
+  }
+  return next();
+}
+
 module.exports = {
   validarId,
   validarPaciente,
   validarFiltroAtivo,
-  validarMedicamento
+  validarMedicamento,
+  validarCadastroUsuario,
+  validarAlteracaoUsuario,
+  validarLogin,
+  validarNovaSenha
 };
