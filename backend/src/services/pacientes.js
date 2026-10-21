@@ -21,20 +21,33 @@ async function buscarPacientePorId(AId) {
 
 /**
  * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 20/10/2026 20:57
+ * * OBJECTIVE: Tirar os espaços das pontas do nome e do telefone e tratar data de nascimento vazia como não informada.
+ */
+function normalizarPaciente(ADados) {
+  return {
+    nome: ADados.nome.trim(),
+    telefone: ADados.telefone.trim(),
+    data_nascimento: ADados.data_nascimento || null
+  };
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
  * * DATE: 11/10/2026 13:26
- * * OBJECTIVE: Cadastrar um paciente e devolver o registro criado.
+ * * OBJECTIVE: Cadastrar um paciente com os dados normalizados e devolver o registro criado.
  */
 async function cadastrarPaciente(ADados) {
-  return repository.cadastrarPaciente(ADados);
+  return repository.cadastrarPaciente(normalizarPaciente(ADados));
 }
 
 /**
  * * AUTHOR: Vinícius Gonçalves
  * * DATE: 11/10/2026 16:51
- * * OBJECTIVE: Alterar os dados de um paciente e devolver o registro alterado.
+ * * OBJECTIVE: Alterar os dados de um paciente, já normalizados, e devolver o registro alterado.
  */
 async function alterarPaciente(AId, ADados) {
-  return repository.alterarPaciente(AId, ADados);
+  return repository.alterarPaciente(AId, normalizarPaciente(ADados));
 }
 
 /**

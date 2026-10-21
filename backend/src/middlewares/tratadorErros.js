@@ -1,6 +1,7 @@
 const ErroApi = require('../errors/ErroApi');
 
 const REGISTRO_DUPLICADO = '23505';
+const TEXTO_MUITO_LONGO = '22001';
 const JSON_INVALIDO = 'entity.parse.failed';
 
 const MENSAGENS_DUPLICIDADE = {
@@ -38,6 +39,11 @@ function tratarErros(AErro, req, res, next) {
     const LMensagem =
       MENSAGENS_DUPLICIDADE[AErro.constraint] || 'registro já cadastrado';
     return res.status(409).json({ erro: LMensagem });
+  }
+  if (AErro.code === TEXTO_MUITO_LONGO) {
+    return res
+      .status(400)
+      .json({ erro: 'um dos campos excede o tamanho máximo permitido' });
   }
   console.error(AErro);
   return res.status(500).json({ erro: 'erro interno do servidor' });

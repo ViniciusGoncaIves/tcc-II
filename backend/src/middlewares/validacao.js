@@ -34,12 +34,21 @@ function dataValida(AData) {
 
 /**
  * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 20/10/2026 20:57
+ * * OBJECTIVE: Informar se o valor é um texto com algum conteúdo além de espaços.
+ */
+function textoPreenchido(AValor) {
+  return typeof AValor === 'string' && AValor.trim() !== '';
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
  * * DATE: 11/10/2026 16:51
  * * OBJECTIVE: Barrar a requisição quando os dados do paciente estão incompletos ou inválidos.
  */
 function validarPaciente(req, res, next) {
   const LDados = req.body || {};
-  if (!LDados.nome || !LDados.telefone) {
+  if (!textoPreenchido(LDados.nome) || !textoPreenchido(LDados.telefone)) {
     throw new ErroApi(400, 'campos obrigatórios faltando');
   }
   if (LDados.data_nascimento && !dataValida(LDados.data_nascimento)) {
@@ -71,7 +80,7 @@ function validarFiltroAtivo(req, res, next) {
  */
 function validarMedicamento(req, res, next) {
   const LDados = req.body || {};
-  if (typeof LDados.nome !== 'string' || !LDados.nome.trim()) {
+  if (!textoPreenchido(LDados.nome)) {
     throw new ErroApi(400, 'campos obrigatórios faltando');
   }
   return next();
