@@ -3,6 +3,7 @@ const repository = require('../repositories/receitas');
 const alertasRepository = require('../repositories/alertas');
 const pacientesRepository = require('../repositories/pacientes');
 const medicamentosRepository = require('../repositories/medicamentos');
+const agendador = require('../jobs/alertas');
 const ErroApi = require('../errors/ErroApi');
 
 /**
@@ -66,13 +67,13 @@ async function conferirMedicamentos(AItens) {
 /**
  * * AUTHOR: Vinícius Gonçalves
  * * DATE: 21/10/2026 19:32
- * * OBJECTIVE: Emitir a receita em uma única transação: grava a receita, os itens e o alerta da dose 1 de cada item, ou nada em caso de erro.
+ * * OBJECTIVE: Emitir a receita em uma única transação: grava a receita, os itens e o alerta da dose 1 de cada item, ou nada em caso de erro; em seguida, aciona o agendador para a dose 1 sair na hora.
  */
 async function emitirReceita(ADados, AIdUsuario) {
   const LDados = normalizarReceita(ADados);
   await conferirPaciente(LDados.idpaciente);
   await conferirMedicamentos(LDados.itens);
-  return db.transacao(async (AConexao) => {
+  const LReceitaEmitida = await db.transacao(async (AConexao) => {
     const LReceita = await repository.cadastrarReceita(
       AConexao,
       LDados,
@@ -93,6 +94,9 @@ async function emitirReceita(ADados, AIdUsuario) {
     }
     return LReceita;
   });
+  // A dose 1 sai logo após a emissão, sem esperar a próxima rodada do agendador.
+  agendador.executarRodada();
+  return LReceitaEmitida;
 }
 
 /**

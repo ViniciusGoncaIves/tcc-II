@@ -182,6 +182,48 @@ async function cancelarItensReceita(AConexao, AIdReceita) {
   await AConexao.query(LSql, [AIdReceita]);
 }
 
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 22/10/2026 19:23
+ * * OBJECTIVE: Cancelar, dentro da transação recebida, os itens cuja dose 1 expirou sem confirmação; devolve os ids das receitas desses itens.
+ */
+async function cancelarItensExpirados(AConexao, AIdsItens) {
+  const LSql = `UPDATE ITENS_RECEITA
+                   SET STATUS = 'CANCELADO'
+                 WHERE ITENS_RECEITA.IDITENSRECEITA = ANY($1::UUID[])
+                   AND ITENS_RECEITA.STATUS = 'AGUARDANDO_CONFIRMACAO'
+             RETURNING ITENS_RECEITA.IDRECEITA`;
+  const LResultado = await AConexao.query(LSql, [AIdsItens]);
+  return LResultado.rows.map((ALinha) => ALinha.idreceita);
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 22/10/2026 19:24
+ * * OBJECTIVE: Contar, dentro da transação recebida, quantos itens da receita ainda estão ativos e quantos foram concluídos.
+ */
+async function resumirItensReceita(AConexao, AIdReceita) {
+  const LSql = `SELECT (COUNT(*) FILTER (WHERE ITENS_RECEITA.STATUS IN ('AGUARDANDO_CONFIRMACAO', 'EM_ANDAMENTO')))::INTEGER AS ITENS_ATIVOS,
+                       (COUNT(*) FILTER (WHERE ITENS_RECEITA.STATUS = 'CONCLUIDO'))::INTEGER AS ITENS_CONCLUIDOS
+                  FROM ITENS_RECEITA
+                 WHERE ITENS_RECEITA.IDRECEITA = $1`;
+  const LResultado = await AConexao.query(LSql, [AIdReceita]);
+  return LResultado.rows[0];
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 22/10/2026 19:26
+ * * OBJECTIVE: Marcar a receita como concluída, dentro da transação recebida, se ela ainda estiver ativa.
+ */
+async function concluirReceita(AConexao, AIdReceita) {
+  const LSql = `UPDATE RECEITA
+                   SET STATUS = 'CONCLUIDA'
+                 WHERE RECEITA.IDRECEITA = $1
+                   AND RECEITA.STATUS = 'ATIVA'`;
+  await AConexao.query(LSql, [AIdReceita]);
+}
+
 module.exports = {
   cadastrarReceita,
   cadastrarItemReceita,
@@ -190,5 +232,8 @@ module.exports = {
   buscarReceitaPorId,
   buscarItensReceita,
   cancelarReceita,
-  cancelarItensReceita
+  cancelarItensReceita,
+  cancelarItensExpirados,
+  resumirItensReceita,
+  concluirReceita
 };

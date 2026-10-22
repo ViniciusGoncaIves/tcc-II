@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const app = express();
 const db = require('./configs');
+const agendador = require('./jobs/alertas');
 const {
   rotaNaoEncontrada,
   tratarErros
@@ -30,4 +31,5 @@ app.use(tratarErros);
 
 app.listen(PORT, () => {
   console.log(`api rodando na porta ${PORT}`);
+  agendador.iniciarAgendador();
 });
