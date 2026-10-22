@@ -6,10 +6,15 @@ const db = require('../configs');
  * * OBJECTIVE: Consultar os medicamentos em ordem alfabética, filtrando pela situação quando ela for informada.
  */
 async function buscarMedicamentos(AAtivo) {
-  const LSql = `SELECT *
+  const LSql = `SELECT MEDICAMENTO.IDMEDICAMENTO,
+                       MEDICAMENTO.NOME,
+                       MEDICAMENTO.DESCRICAO,
+                       MEDICAMENTO.DATA_CRIACAO,
+                       MEDICAMENTO.DATA_ALTERACAO,
+                       MEDICAMENTO.ATIVO
                   FROM MEDICAMENTO
-                 WHERE ($1::BOOLEAN IS NULL OR ATIVO = $1)
-                 ORDER BY NOME`;
+                 WHERE ($1::BOOLEAN IS NULL OR MEDICAMENTO.ATIVO = $1)
+                 ORDER BY MEDICAMENTO.NOME`;
   const LResultado = await db.query(LSql, [AAtivo]);
   return LResultado.rows;
 }
@@ -20,9 +25,14 @@ async function buscarMedicamentos(AAtivo) {
  * * OBJECTIVE: Consultar um medicamento pelo id.
  */
 async function buscarMedicamentoPorId(AId) {
-  const LSql = `SELECT *
+  const LSql = `SELECT MEDICAMENTO.IDMEDICAMENTO,
+                       MEDICAMENTO.NOME,
+                       MEDICAMENTO.DESCRICAO,
+                       MEDICAMENTO.DATA_CRIACAO,
+                       MEDICAMENTO.DATA_ALTERACAO,
+                       MEDICAMENTO.ATIVO
                   FROM MEDICAMENTO
-                 WHERE IDMEDICAMENTO = $1`;
+                 WHERE MEDICAMENTO.IDMEDICAMENTO = $1`;
   const LResultado = await db.query(LSql, [AId]);
   return LResultado.rows[0];
 }
@@ -35,7 +45,12 @@ async function buscarMedicamentoPorId(AId) {
 async function cadastrarMedicamento(ADados) {
   const LSql = `INSERT INTO MEDICAMENTO (NOME, DESCRICAO)
                 VALUES ($1, $2)
-             RETURNING *`;
+             RETURNING MEDICAMENTO.IDMEDICAMENTO,
+                       MEDICAMENTO.NOME,
+                       MEDICAMENTO.DESCRICAO,
+                       MEDICAMENTO.DATA_CRIACAO,
+                       MEDICAMENTO.DATA_ALTERACAO,
+                       MEDICAMENTO.ATIVO`;
   const LResultado = await db.query(LSql, [ADados.nome, ADados.descricao]);
   return LResultado.rows[0];
 }
@@ -50,8 +65,13 @@ async function alterarMedicamento(AId, ADados) {
                    SET NOME = $1,
                        DESCRICAO = $2,
                        DATA_ALTERACAO = NOW()
-                 WHERE IDMEDICAMENTO = $3
-             RETURNING *`;
+                 WHERE MEDICAMENTO.IDMEDICAMENTO = $3
+             RETURNING MEDICAMENTO.IDMEDICAMENTO,
+                       MEDICAMENTO.NOME,
+                       MEDICAMENTO.DESCRICAO,
+                       MEDICAMENTO.DATA_CRIACAO,
+                       MEDICAMENTO.DATA_ALTERACAO,
+                       MEDICAMENTO.ATIVO`;
   const LResultado = await db.query(LSql, [ADados.nome, ADados.descricao, AId]);
   return LResultado.rows[0];
 }
@@ -65,8 +85,13 @@ async function alterarSituacaoMedicamento(AId, AAtivo) {
   const LSql = `UPDATE MEDICAMENTO
                    SET ATIVO = $1,
                        DATA_ALTERACAO = NOW()
-                 WHERE IDMEDICAMENTO = $2
-             RETURNING *`;
+                 WHERE MEDICAMENTO.IDMEDICAMENTO = $2
+             RETURNING MEDICAMENTO.IDMEDICAMENTO,
+                       MEDICAMENTO.NOME,
+                       MEDICAMENTO.DESCRICAO,
+                       MEDICAMENTO.DATA_CRIACAO,
+                       MEDICAMENTO.DATA_ALTERACAO,
+                       MEDICAMENTO.ATIVO`;
   const LResultado = await db.query(LSql, [AAtivo, AId]);
   return LResultado.rows[0];
 }

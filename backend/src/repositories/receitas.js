@@ -8,7 +8,12 @@ const db = require('../configs');
 async function cadastrarReceita(AConexao, ADados, AIdUsuario) {
   const LSql = `INSERT INTO RECEITA (IDPACIENTE, USUARIO, OBSERVACAO)
                 VALUES ($1, $2, $3)
-             RETURNING *`;
+             RETURNING RECEITA.IDRECEITA,
+                       RECEITA.IDPACIENTE,
+                       RECEITA.USUARIO,
+                       RECEITA.OBSERVACAO,
+                       RECEITA.STATUS,
+                       RECEITA.DATA_EMISSAO`;
   const LResultado = await AConexao.query(LSql, [
     ADados.idpaciente,
     AIdUsuario,
@@ -26,7 +31,15 @@ async function cadastrarItemReceita(AConexao, AIdReceita, AItem) {
   const LSql = `INSERT INTO ITENS_RECEITA (IDRECEITA, IDMEDICAMENTO, DOSE,
                                            INTERVALO_HORAS, DURACAO_DIAS)
                 VALUES ($1, $2, $3, $4, $5)
-             RETURNING *`;
+             RETURNING ITENS_RECEITA.IDITENSRECEITA,
+                       ITENS_RECEITA.IDRECEITA,
+                       ITENS_RECEITA.IDMEDICAMENTO,
+                       ITENS_RECEITA.DOSE,
+                       ITENS_RECEITA.INTERVALO_HORAS,
+                       ITENS_RECEITA.DURACAO_DIAS,
+                       ITENS_RECEITA.DATA_INICIO,
+                       ITENS_RECEITA.QUANTIDADE_ALERTA,
+                       ITENS_RECEITA.STATUS`;
   const LResultado = await AConexao.query(LSql, [
     AIdReceita,
     AItem.idmedicamento,
@@ -45,8 +58,8 @@ async function cadastrarItemReceita(AConexao, AIdReceita, AItem) {
 async function contarReceitasAtivasPorPaciente(AIdPaciente) {
   const LSql = `SELECT COUNT(*) AS TOTAL
                   FROM RECEITA
-                 WHERE IDPACIENTE = $1
-                   AND STATUS = 'ATIVA'`;
+                 WHERE RECEITA.IDPACIENTE = $1
+                   AND RECEITA.STATUS = 'ATIVA'`;
   const LResultado = await db.query(LSql, [AIdPaciente]);
   return Number(LResultado.rows[0].total);
 }

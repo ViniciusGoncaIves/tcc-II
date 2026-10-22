@@ -1,18 +1,22 @@
 const db = require('../configs');
 
-const COLUNAS_USUARIO = `IDUSUARIO, NOME, EMAIL, TIPO_USUARIO, ATIVO, TROCAR_SENHA,
-                         DATA_REGISTRO, DATA_ATUALIZACAO`;
-
 /**
  * * AUTHOR: Vinícius Gonçalves
  * * DATE: 21/10/2026 12:29
  * * OBJECTIVE: Consultar os usuários em ordem alfabética, sem a senha, filtrando pela situação quando ela for informada.
  */
 async function buscarUsuarios(AAtivo) {
-  const LSql = `SELECT ${COLUNAS_USUARIO}
+  const LSql = `SELECT USUARIO.IDUSUARIO,
+                       USUARIO.NOME,
+                       USUARIO.EMAIL,
+                       USUARIO.TIPO_USUARIO,
+                       USUARIO.ATIVO,
+                       USUARIO.TROCAR_SENHA,
+                       USUARIO.DATA_REGISTRO,
+                       USUARIO.DATA_ATUALIZACAO
                   FROM USUARIO
-                 WHERE ($1::BOOLEAN IS NULL OR ATIVO = $1)
-                 ORDER BY NOME`;
+                 WHERE ($1::BOOLEAN IS NULL OR USUARIO.ATIVO = $1)
+                 ORDER BY USUARIO.NOME`;
   const LResultado = await db.query(LSql, [AAtivo]);
   return LResultado.rows;
 }
@@ -23,9 +27,16 @@ async function buscarUsuarios(AAtivo) {
  * * OBJECTIVE: Consultar um usuário pelo id, sem a senha.
  */
 async function buscarUsuarioPorId(AId) {
-  const LSql = `SELECT ${COLUNAS_USUARIO}
+  const LSql = `SELECT USUARIO.IDUSUARIO,
+                       USUARIO.NOME,
+                       USUARIO.EMAIL,
+                       USUARIO.TIPO_USUARIO,
+                       USUARIO.ATIVO,
+                       USUARIO.TROCAR_SENHA,
+                       USUARIO.DATA_REGISTRO,
+                       USUARIO.DATA_ATUALIZACAO
                   FROM USUARIO
-                 WHERE IDUSUARIO = $1`;
+                 WHERE USUARIO.IDUSUARIO = $1`;
   const LResultado = await db.query(LSql, [AId]);
   return LResultado.rows[0];
 }
@@ -36,9 +47,17 @@ async function buscarUsuarioPorId(AId) {
  * * OBJECTIVE: Consultar um usuário pelo e-mail incluindo o hash da senha, para uso exclusivo no login.
  */
 async function buscarUsuarioComSenhaPorEmail(AEmail) {
-  const LSql = `SELECT ${COLUNAS_USUARIO}, SENHA
+  const LSql = `SELECT USUARIO.IDUSUARIO,
+                       USUARIO.NOME,
+                       USUARIO.EMAIL,
+                       USUARIO.TIPO_USUARIO,
+                       USUARIO.ATIVO,
+                       USUARIO.TROCAR_SENHA,
+                       USUARIO.DATA_REGISTRO,
+                       USUARIO.DATA_ATUALIZACAO,
+                       USUARIO.SENHA
                   FROM USUARIO
-                 WHERE EMAIL = $1`;
+                 WHERE USUARIO.EMAIL = $1`;
   const LResultado = await db.query(LSql, [AEmail]);
   return LResultado.rows[0];
 }
@@ -49,9 +68,9 @@ async function buscarUsuarioComSenhaPorEmail(AEmail) {
  * * OBJECTIVE: Consultar o hash da senha de um usuário, para conferir a senha atual na troca de senha.
  */
 async function buscarSenhaPorId(AId) {
-  const LSql = `SELECT SENHA
+  const LSql = `SELECT USUARIO.SENHA
                   FROM USUARIO
-                 WHERE IDUSUARIO = $1`;
+                 WHERE USUARIO.IDUSUARIO = $1`;
   const LResultado = await db.query(LSql, [AId]);
   return LResultado.rows[0]?.senha;
 }
@@ -64,7 +83,14 @@ async function buscarSenhaPorId(AId) {
 async function cadastrarUsuario(ADados) {
   const LSql = `INSERT INTO USUARIO (NOME, EMAIL, SENHA, TIPO_USUARIO)
                 VALUES ($1, $2, $3, $4)
-             RETURNING ${COLUNAS_USUARIO}`;
+             RETURNING USUARIO.IDUSUARIO,
+                       USUARIO.NOME,
+                       USUARIO.EMAIL,
+                       USUARIO.TIPO_USUARIO,
+                       USUARIO.ATIVO,
+                       USUARIO.TROCAR_SENHA,
+                       USUARIO.DATA_REGISTRO,
+                       USUARIO.DATA_ATUALIZACAO`;
   const LResultado = await db.query(LSql, [
     ADados.nome,
     ADados.email,
@@ -83,12 +109,19 @@ async function alterarUsuario(AId, ADados) {
   const LSql = `UPDATE USUARIO
                    SET NOME = $1,
                        EMAIL = $2,
-                       TIPO_USUARIO = COALESCE($3, TIPO_USUARIO),
-                       SENHA = COALESCE($4::VARCHAR, SENHA),
-                       TROCAR_SENHA = ($4::VARCHAR IS NOT NULL OR TROCAR_SENHA),
+                       TIPO_USUARIO = COALESCE($3, USUARIO.TIPO_USUARIO),
+                       SENHA = COALESCE($4::VARCHAR, USUARIO.SENHA),
+                       TROCAR_SENHA = ($4::VARCHAR IS NOT NULL OR USUARIO.TROCAR_SENHA),
                        DATA_ATUALIZACAO = NOW()
-                 WHERE IDUSUARIO = $5
-             RETURNING ${COLUNAS_USUARIO}`;
+                 WHERE USUARIO.IDUSUARIO = $5
+             RETURNING USUARIO.IDUSUARIO,
+                       USUARIO.NOME,
+                       USUARIO.EMAIL,
+                       USUARIO.TIPO_USUARIO,
+                       USUARIO.ATIVO,
+                       USUARIO.TROCAR_SENHA,
+                       USUARIO.DATA_REGISTRO,
+                       USUARIO.DATA_ATUALIZACAO`;
   const LResultado = await db.query(LSql, [
     ADados.nome,
     ADados.email,
@@ -109,7 +142,7 @@ async function definirSenha(AId, ASenha, ATrocarSenha) {
                    SET SENHA = $1,
                        TROCAR_SENHA = $2,
                        DATA_ATUALIZACAO = NOW()
-                 WHERE IDUSUARIO = $3`;
+                 WHERE USUARIO.IDUSUARIO = $3`;
   await db.query(LSql, [ASenha, ATrocarSenha, AId]);
 }
 
@@ -122,8 +155,15 @@ async function alterarSituacaoUsuario(AId, AAtivo) {
   const LSql = `UPDATE USUARIO
                    SET ATIVO = $1,
                        DATA_ATUALIZACAO = NOW()
-                 WHERE IDUSUARIO = $2
-             RETURNING ${COLUNAS_USUARIO}`;
+                 WHERE USUARIO.IDUSUARIO = $2
+             RETURNING USUARIO.IDUSUARIO,
+                       USUARIO.NOME,
+                       USUARIO.EMAIL,
+                       USUARIO.TIPO_USUARIO,
+                       USUARIO.ATIVO,
+                       USUARIO.TROCAR_SENHA,
+                       USUARIO.DATA_REGISTRO,
+                       USUARIO.DATA_ATUALIZACAO`;
   const LResultado = await db.query(LSql, [AAtivo, AId]);
   return LResultado.rows[0];
 }
@@ -136,8 +176,8 @@ async function alterarSituacaoUsuario(AId, AAtivo) {
 async function contarAdministradoresAtivos() {
   const LSql = `SELECT COUNT(*) AS TOTAL
                   FROM USUARIO
-                 WHERE TIPO_USUARIO = 'ADMIN'
-                   AND ATIVO = TRUE`;
+                 WHERE USUARIO.TIPO_USUARIO = 'ADMIN'
+                   AND USUARIO.ATIVO = TRUE`;
   const LResultado = await db.query(LSql);
   return Number(LResultado.rows[0].total);
 }
