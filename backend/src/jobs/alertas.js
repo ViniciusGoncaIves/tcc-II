@@ -19,7 +19,9 @@ async function processarAlertas() {
       );
     }
   } catch (LErro) {
-    console.error(`agendador: erro ao expirar alertas: ${LErro.message}`);
+    console.error(
+      `agendador: erro ao expirar alertas: ${LErro.message || LErro.code}`
+    );
   }
   try {
     const LEnviados = await service.enviarAlertasVencidos();
@@ -27,7 +29,9 @@ async function processarAlertas() {
       console.log(`agendador: ${LEnviados} alerta(s) enviado(s)`);
     }
   } catch (LErro) {
-    console.error(`agendador: erro ao enviar alertas: ${LErro.message}`);
+    console.error(
+      `agendador: erro ao enviar alertas: ${LErro.message || LErro.code}`
+    );
   }
 }
 
