@@ -95,6 +95,63 @@ async function emitirReceita(ADados, AIdUsuario) {
   });
 }
 
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 21/10/2026 21:25
+ * * OBJECTIVE: Buscar as receitas para o relatório, filtrando pela situação e pelo paciente quando forem informados.
+ */
+async function buscarReceitas(AFiltros) {
+  return repository.buscarReceitas(AFiltros);
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 21/10/2026 21:27
+ * * OBJECTIVE: Buscar uma receita com os itens e o resumo das doses de cada item.
+ */
+async function buscarReceitaPorId(AId) {
+  const LReceita = await repository.buscarReceitaPorId(AId);
+  if (!LReceita) {
+    return undefined;
+  }
+  LReceita.itens = await repository.buscarItensReceita(AId);
+  return LReceita;
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 21/10/2026 21:28
+ * * OBJECTIVE: Cancelar uma receita ativa em uma única transação: a receita, os itens que não terminaram e os alertas ainda não enviados, registrando quem cancelou.
+ */
+async function cancelarReceita(AId, AIdUsuario) {
+  const LReceita = await repository.buscarReceitaPorId(AId);
+  if (!LReceita) {
+    return undefined;
+  }
+  if (LReceita.status !== 'ATIVA') {
+    throw new ErroApi(
+      409,
+      `a receita já está ${LReceita.status === 'CANCELADA' ? 'cancelada' : 'concluída'}`
+    );
+  }
+  await db.transacao(async (AConexao) => {
+    const LAlteradas = await repository.cancelarReceita(
+      AConexao,
+      AId,
+      AIdUsuario
+    );
+    if (LAlteradas === 0) {
+      throw new ErroApi(409, 'a receita não está mais ativa');
+    }
+    await repository.cancelarItensReceita(AConexao, AId);
+    await alertasRepository.cancelarAlertasReceita(AConexao, AId);
+  });
+  return buscarReceitaPorId(AId);
+}
+
 module.exports = {
-  emitirReceita
+  emitirReceita,
+  buscarReceitas,
+  buscarReceitaPorId,
+  cancelarReceita
 };

@@ -9,6 +9,7 @@ const TAMANHO_MINIMO_SENHA = 8;
 const TIPOS_USUARIO = ['ADMIN', 'OPERADOR'];
 const INTERVALO_HORAS_MAXIMO = 168;
 const DURACAO_DIAS_MAXIMO = 365;
+const STATUS_RECEITA = ['ATIVA', 'CONCLUIDA', 'CANCELADA'];
 
 /**
  * * AUTHOR: Vinícius Gonçalves
@@ -279,6 +280,26 @@ function validarReceita(req, res, next) {
   return next();
 }
 
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 21/10/2026 21:34
+ * * OBJECTIVE: Barrar a lista de receitas quando o filtro de situação ou de paciente for inválido.
+ */
+function validarFiltrosReceita(req, res, next) {
+  const LStatus = req.query.status;
+  const LIdPaciente = req.query.idpaciente;
+  if (LStatus !== undefined && !STATUS_RECEITA.includes(LStatus)) {
+    throw new ErroApi(
+      400,
+      'o filtro status deve ser ATIVA, CONCLUIDA ou CANCELADA'
+    );
+  }
+  if (LIdPaciente !== undefined && !uuidValido(LIdPaciente)) {
+    throw new ErroApi(400, 'o filtro idpaciente é inválido');
+  }
+  return next();
+}
+
 module.exports = {
   validarId,
   validarPaciente,
@@ -288,5 +309,6 @@ module.exports = {
   validarAlteracaoUsuario,
   validarLogin,
   validarNovaSenha,
-  validarReceita
+  validarReceita,
+  validarFiltrosReceita
 };
