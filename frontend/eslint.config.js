@@ -1,8 +1,8 @@
-import js from '@eslint/js'
-import globals from 'globals'
-import pluginVue from 'eslint-plugin-vue'
-import pluginQuasar from '@quasar/app-vite/eslint'
-import prettierSkipFormatting from '@vue/eslint-config-prettier/skip-formatting'
+import js from '@eslint/js';
+import globals from 'globals';
+import pluginVue from 'eslint-plugin-vue';
+import pluginQuasar from '@quasar/app-vite/eslint';
+import prettierSkipFormatting from '@vue/eslint-config-prettier/skip-formatting';
 
 export default [
   {
@@ -47,8 +47,8 @@ export default [
         cordova: 'readonly',
         Capacitor: 'readonly',
         chrome: 'readonly', // BEX related
-        browser: 'readonly', // BEX related
-      },
+        browser: 'readonly' // BEX related
+      }
     },
 
     // add your custom rules here
@@ -58,18 +58,18 @@ export default [
       'vue/v-slot-style': ['warn', 'shorthand'],
 
       // allow debugger during development only
-      'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'off',
-    },
+      'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'off'
+    }
   },
 
   {
     files: ['src-pwa/sw/**/*.js'],
     languageOptions: {
       globals: {
-        ...globals.serviceworker,
-      },
-    },
+        ...globals.serviceworker
+      }
+    }
   },
 
-  prettierSkipFormatting,
-]
+  prettierSkipFormatting
+];

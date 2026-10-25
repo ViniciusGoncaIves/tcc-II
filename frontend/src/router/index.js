@@ -1,38 +1,52 @@
-import { defineRouter } from '#q-app'
+import { defineRouter } from '#q-app';
 import {
   createMemoryHistory,
   createRouter,
   createWebHashHistory,
-  createWebHistory,
-} from 'vue-router'
+  createWebHistory
+} from 'vue-router';
 
-import routes from './routes.js'
+import routes from './routes.js';
+import { useAutenticacaoStore } from '@/stores/autenticacao-store';
 
-/*
- * If not building with SSR mode, you can
- * directly export the Router instantiation;
- *
- * The function below can be async too; either use
- * async/await or return a Promise which resolves
- * with the Router instance.
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 25/10/2026 18:29
+ * * OBJECTIVE: Decidir para onde o usuário pode ir, conforme o login e a senha provisória.
  */
+function conferirAcesso(ADestino, AAutenticacao) {
+  if (ADestino.meta.semRestricao) {
+    return true;
+  }
+  if (ADestino.meta.apenasSemLogin) {
+    return AAutenticacao.estaLogado ? '/' : true;
+  }
+  if (!AAutenticacao.estaLogado) {
+    return '/login';
+  }
+  if (AAutenticacao.precisaTrocarSenha && ADestino.path !== '/trocar-senha') {
+    return '/trocar-senha';
+  }
+  return true;
+}
 
-export default defineRouter((/* { store, ssrContext } */) => {
-  const createHistory = import.meta.env.QUASAR_SERVER
+export default defineRouter(({ store }) => {
+  const LCriarHistorico = import.meta.env.QUASAR_SERVER
     ? createMemoryHistory
     : import.meta.env.QUASAR_VUE_ROUTER_MODE === 'history'
       ? createWebHistory
-      : createWebHashHistory
+      : createWebHashHistory;
 
-  const Router = createRouter({
+  const LRouter = createRouter({
     scrollBehavior: () => ({ left: 0, top: 0 }),
     routes,
 
-    // Leave this as is and make changes in quasar.conf.js instead!
-    // quasar.conf.js -> build -> vueRouterMode
-    // quasar.conf.js -> build -> publicPath
-    history: createHistory(import.meta.env.QUASAR_VUE_ROUTER_BASE),
-  })
+    // O modo e o caminho base vêm do quasar.config.js (build).
+    history: LCriarHistorico(import.meta.env.QUASAR_VUE_ROUTER_BASE)
+  });
 
-  return Router
-})
+  const LAutenticacao = useAutenticacaoStore(store);
+  LRouter.beforeEach((ADestino) => conferirAcesso(ADestino, LAutenticacao));
+
+  return LRouter;
+});

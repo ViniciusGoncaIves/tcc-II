@@ -1,20 +1,33 @@
 <template>
-  <q-layout view="lHh Lpr lFf">
+  <q-layout view="hHh Lpr lFf" class="bg-grey-1">
     <q-header elevated>
       <q-toolbar>
-        <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
+        <q-btn
+          flat
+          dense
+          round
+          icon="menu"
+          aria-label="Menu"
+          @click="alternarMenu"
+        />
 
-        <q-toolbar-title> Quasar App </q-toolbar-title>
+        <q-toolbar-title>DoseCerta</q-toolbar-title>
 
-        <div>Quasar v{{ $q.version }}</div>
+        <div class="q-mr-sm gt-xs">{{ LAutenticacao.usuario?.nome }}</div>
+
+        <q-btn flat dense no-caps icon="logout" label="Sair" @click="sair" />
       </q-toolbar>
     </q-header>
 
-    <q-drawer v-model="leftDrawerOpen" show-if-above bordered>
+    <q-drawer v-model="LMenuAberto" show-if-above bordered>
       <q-list>
-        <q-item-label header> Essential Links </q-item-label>
+        <q-item-label header>Menu</q-item-label>
 
-        <EssentialLink v-for="link in linksList" :key="link.label" v-bind="link" />
+        <EssentialLink
+          v-for="LItem in ITENS_MENU"
+          :key="LItem.to"
+          v-bind="LItem"
+        />
       </q-list>
     </q-drawer>
 
@@ -25,57 +38,43 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import EssentialLink from '@/components/EssentialLink.vue'
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useQuasar } from 'quasar';
+import EssentialLink from '@/components/EssentialLink.vue';
+import { useAutenticacaoStore } from '@/stores/autenticacao-store';
 
-const linksList = [
-  {
-    label: 'Docs',
-    caption: 'quasar.dev',
-    icon: 'school',
-    link: 'https://quasar.dev',
-  },
-  {
-    label: 'GitHub',
-    caption: 'github.com/quasarframework',
-    icon: 'code',
-    link: 'https://github.com/quasarframework',
-  },
-  {
-    label: 'Discord Chat Channel',
-    caption: 'chat.quasar.dev',
-    icon: 'chat',
-    link: 'https://chat.quasar.dev',
-  },
-  {
-    label: 'Forum',
-    caption: 'forum.quasar.dev',
-    icon: 'record_voice_over',
-    link: 'https://forum.quasar.dev',
-  },
-  {
-    label: 'Twitter',
-    caption: '@quasarframework',
-    icon: 'rss_feed',
-    link: 'https://twitter.quasar.dev',
-  },
-  {
-    label: 'Facebook',
-    caption: '@QuasarFramework',
-    icon: 'public',
-    link: 'https://facebook.quasar.dev',
-  },
-  {
-    label: 'Quasar Awesome',
-    caption: 'Community Quasar projects',
-    icon: 'favorite',
-    link: 'https://awesome.quasar.dev',
-  },
-]
+const ITENS_MENU = [{ titulo: 'Início', icone: 'home', to: '/' }];
 
-const leftDrawerOpen = ref(false)
+const LQuasar = useQuasar();
+const LRouter = useRouter();
+const LAutenticacao = useAutenticacaoStore();
+const LMenuAberto = ref(false);
 
-function toggleLeftDrawer() {
-  leftDrawerOpen.value = !leftDrawerOpen.value
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 25/10/2026 18:30
+ * * OBJECTIVE: Abrir ou fechar o menu lateral.
+ */
+function alternarMenu() {
+  LMenuAberto.value = !LMenuAberto.value;
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 25/10/2026 18:31
+ * * OBJECTIVE: Pedir confirmação e encerrar a sessão, voltando ao login.
+ */
+function sair() {
+  LQuasar.dialog({
+    title: 'Sair',
+    message: 'Deseja sair do DoseCerta?',
+    ok: { label: 'Sair', color: 'primary', unelevated: true, noCaps: true },
+    cancel: { label: 'Cancelar', color: 'primary', flat: true, noCaps: true },
+    persistent: true
+  }).onOk(() => {
+    LAutenticacao.sair();
+    LRouter.push('/login');
+  });
 }
 </script>

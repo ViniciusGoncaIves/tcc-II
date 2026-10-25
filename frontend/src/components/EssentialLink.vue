@@ -1,36 +1,30 @@
 <template>
-  <q-item clickable tag="a" target="_blank" :href="props.link">
-    <q-item-section v-if="props.icon" avatar>
-      <q-icon :name="props.icon" />
+  <q-item clickable v-ripple :to="props.to" exact>
+    <q-item-section v-if="props.icone" avatar>
+      <q-icon :name="props.icone" />
     </q-item-section>
 
     <q-item-section>
-      <q-item-label>{{ props.label }}</q-item-label>
-      <q-item-label caption>{{ props.caption }}</q-item-label>
+      <q-item-label>{{ props.titulo }}</q-item-label>
     </q-item-section>
   </q-item>
 </template>
 
 <script setup>
 const props = defineProps({
-  label: {
+  titulo: {
     type: String,
-    required: true,
+    required: true
   },
 
-  caption: {
-    type: String,
-    default: '',
+  to: {
+    type: [String, Object],
+    required: true
   },
 
-  link: {
+  icone: {
     type: String,
-    default: '#',
-  },
-
-  icon: {
-    type: String,
-    default: '',
-  },
-})
+    default: ''
+  }
+});
 </script>
