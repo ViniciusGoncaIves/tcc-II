@@ -24,9 +24,11 @@
         <q-item-label header>Menu</q-item-label>
 
         <EssentialLink
-          v-for="LItem in ITENS_MENU"
+          v-for="LItem in LItensMenu"
           :key="LItem.to"
-          v-bind="LItem"
+          :titulo="LItem.titulo"
+          :icone="LItem.icone"
+          :to="LItem.to"
         />
       </q-list>
     </q-drawer>
@@ -38,7 +40,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import EssentialLink from '@/components/EssentialLink.vue';
@@ -48,13 +50,26 @@ const ITENS_MENU = [
   { titulo: 'Início', icone: 'home', to: '/' },
   { titulo: 'Receitas', icone: 'receipt_long', to: '/receitas' },
   { titulo: 'Pacientes', icone: 'people', to: '/pacientes' },
-  { titulo: 'Medicamentos', icone: 'medication', to: '/medicamentos' }
+  { titulo: 'Medicamentos', icone: 'medication', to: '/medicamentos' },
+  {
+    titulo: 'Usuários',
+    icone: 'manage_accounts',
+    to: '/usuarios',
+    apenasAdministrador: true
+  }
 ];
 
 const LQuasar = useQuasar();
 const LRouter = useRouter();
 const LAutenticacao = useAutenticacaoStore();
 const LMenuAberto = ref(false);
+
+// Esconder o item é só usabilidade: quem barra o operador é a API.
+const LItensMenu = computed(() =>
+  ITENS_MENU.filter(
+    (AItem) => !AItem.apenasAdministrador || LAutenticacao.ehAdministrador
+  )
+);
 
 /**
  * * AUTHOR: Vinícius Gonçalves

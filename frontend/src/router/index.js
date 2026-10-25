@@ -12,7 +12,7 @@ import { useAutenticacaoStore } from '@/stores/autenticacao-store';
 /**
  * * AUTHOR: Vinícius Gonçalves
  * * DATE: 25/10/2026 18:29
- * * OBJECTIVE: Decidir para onde o usuário pode ir, conforme o login e a senha provisória.
+ * * OBJECTIVE: Decidir para onde o usuário pode ir, conforme o login, a senha provisória e o perfil.
  */
 function conferirAcesso(ADestino, AAutenticacao) {
   if (ADestino.meta.semRestricao) {
@@ -26,6 +26,9 @@ function conferirAcesso(ADestino, AAutenticacao) {
   }
   if (AAutenticacao.precisaTrocarSenha && ADestino.path !== '/trocar-senha') {
     return '/trocar-senha';
+  }
+  if (ADestino.meta.apenasAdministrador && !AAutenticacao.ehAdministrador) {
+    return '/';
   }
   return true;
 }

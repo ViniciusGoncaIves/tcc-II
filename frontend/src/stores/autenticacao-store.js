@@ -93,6 +93,19 @@ export const useAutenticacaoStore = defineStore('autenticacao', {
 
     /**
      * * AUTHOR: Vinícius Gonçalves
+     * * DATE: 25/10/2026 20:13
+     * * OBJECTIVE: Atualizar o nome e o e-mail guardados quando o usuário logado altera o próprio cadastro.
+     */
+    atualizarUsuarioLogado(AUsuario) {
+      this.guardarSessao(this.token, {
+        ...this.usuario,
+        nome: AUsuario.nome,
+        email: AUsuario.email
+      });
+    },
+
+    /**
+     * * AUTHOR: Vinícius Gonçalves
      * * DATE: 25/10/2026 18:28
      * * OBJECTIVE: Encerrar a sessão, apagando o token e os dados do usuário.
      */

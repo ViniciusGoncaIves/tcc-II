@@ -1,5 +1,6 @@
 // meta.apenasSemLogin: só para quem não entrou (quem já entrou vai ao início).
 // meta.semRestricao: abre com ou sem login.
+// meta.apenasAdministrador: só para administradores (o operador vai ao início).
 const routes = [
   {
     path: '/login',
@@ -34,6 +35,11 @@ const routes = [
       {
         path: 'medicamentos',
         component: () => import('@/pages/CadastroMedicamentosPage.vue')
+      },
+      {
+        path: 'usuarios',
+        component: () => import('@/pages/CadastroUsuariosPage.vue'),
+        meta: { apenasAdministrador: true }
       }
     ]
   },
