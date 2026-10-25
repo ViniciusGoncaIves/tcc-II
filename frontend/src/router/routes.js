@@ -13,7 +13,17 @@ const routes = [
   {
     path: '/',
     component: () => import('@/layouts/MainLayout.vue'),
-    children: [{ path: '', component: () => import('@/pages/InicioPage.vue') }]
+    children: [
+      { path: '', component: () => import('@/pages/InicioPage.vue') },
+      {
+        path: 'pacientes',
+        component: () => import('@/pages/CadastroPacientesPage.vue')
+      },
+      {
+        path: 'medicamentos',
+        component: () => import('@/pages/CadastroMedicamentosPage.vue')
+      }
+    ]
   },
 
   // Sempre a última: qualquer endereço que não existe.

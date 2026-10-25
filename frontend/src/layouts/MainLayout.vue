@@ -44,7 +44,11 @@ import { useQuasar } from 'quasar';
 import EssentialLink from '@/components/EssentialLink.vue';
 import { useAutenticacaoStore } from '@/stores/autenticacao-store';
 
-const ITENS_MENU = [{ titulo: 'Início', icone: 'home', to: '/' }];
+const ITENS_MENU = [
+  { titulo: 'Início', icone: 'home', to: '/' },
+  { titulo: 'Pacientes', icone: 'people', to: '/pacientes' },
+  { titulo: 'Medicamentos', icone: 'medication', to: '/medicamentos' }
+];
 
 const LQuasar = useQuasar();
 const LRouter = useRouter();
