@@ -46,6 +46,7 @@ import { useAutenticacaoStore } from '@/stores/autenticacao-store';
 
 const ITENS_MENU = [
   { titulo: 'Início', icone: 'home', to: '/' },
+  { titulo: 'Receitas', icone: 'receipt_long', to: '/receitas' },
   { titulo: 'Pacientes', icone: 'people', to: '/pacientes' },
   { titulo: 'Medicamentos', icone: 'medication', to: '/medicamentos' }
 ];

@@ -16,6 +16,18 @@ const routes = [
     children: [
       { path: '', component: () => import('@/pages/InicioPage.vue') },
       {
+        path: 'receitas',
+        component: () => import('@/pages/ReceitasPage.vue')
+      },
+      {
+        path: 'receitas/nova',
+        component: () => import('@/pages/EmissaoReceitaPage.vue')
+      },
+      {
+        path: 'receitas/:id',
+        component: () => import('@/pages/DetalheReceitaPage.vue')
+      },
+      {
         path: 'pacientes',
         component: () => import('@/pages/CadastroPacientesPage.vue')
       },
