@@ -15,11 +15,16 @@
                 <q-input
                   v-model="LEmail"
                   outlined
-                  type="email"
+                  inputmode="email"
                   label="E-mail"
                   autocomplete="username"
                   lazy-rules
-                  :rules="[(AValor) => !!AValor || 'Informe o e-mail.']"
+                  :rules="[
+                    (AValor) => !!AValor?.trim() || 'Informe o e-mail.',
+                    (AValor) =>
+                      FORMATO_EMAIL.test(AValor.trim()) ||
+                      'Informe um e-mail válido.'
+                  ]"
                 >
                   <template #prepend>
                     <q-icon name="mail" />
@@ -72,6 +77,9 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { mostrarErro } from '@/boot/axios';
 import { useAutenticacaoStore } from '@/stores/autenticacao-store';
+
+// Mesmo formato que a API confere no cadastro de usuários.
+const FORMATO_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const LRouter = useRouter();
 const LAutenticacao = useAutenticacaoStore();

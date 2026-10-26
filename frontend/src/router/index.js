@@ -33,6 +33,11 @@ function conferirAcesso(ADestino, AAutenticacao) {
   return true;
 }
 
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 26/10/2026 19:29
+ * * OBJECTIVE: Criar as rotas das telas e conferir o acesso antes de cada troca de tela.
+ */
 export default defineRouter(({ store }) => {
   const LCriarHistorico = import.meta.env.QUASAR_SERVER
     ? createMemoryHistory

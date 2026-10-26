@@ -15,6 +15,17 @@
 
         <div class="q-mr-sm gt-xs">{{ LAutenticacao.usuario?.nome }}</div>
 
+        <q-btn
+          flat
+          dense
+          round
+          icon="key"
+          aria-label="Trocar senha"
+          to="/trocar-senha"
+        >
+          <q-tooltip>Trocar senha</q-tooltip>
+        </q-btn>
+
         <q-btn flat dense no-caps icon="logout" label="Sair" @click="sair" />
       </q-toolbar>
     </q-header>
