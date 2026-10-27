@@ -102,7 +102,7 @@ async function emitirReceita(ADados, AIdUsuario) {
 /**
  * * AUTHOR: Vinícius Gonçalves
  * * DATE: 21/10/2026 21:25
- * * OBJECTIVE: Buscar as receitas para o relatório, filtrando pela situação e pelo paciente quando forem informados.
+ * * OBJECTIVE: Buscar as receitas, filtrando pela situação e pelo paciente quando forem informados.
  */
 async function buscarReceitas(AFiltros) {
   return repository.buscarReceitas(AFiltros);

@@ -1,5 +1,4 @@
-# Fica fora da imagem: dependências do Windows (o Docker instala as dele),
-# segredos e arquivos que a API não usa para rodar.
+# Fora da imagem: dependências locais, segredos e arquivos que a API não usa.
 node_modules
 .env
 database

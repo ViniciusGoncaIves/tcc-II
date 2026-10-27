@@ -48,7 +48,7 @@ async function reservarAlertasParaEnvio() {
 /**
  * * AUTHOR: Vinícius Gonçalves
  * * DATE: 22/10/2026 19:32
- * * OBJECTIVE: Enviar os alertas reservados; até a integração com o WhatsApp, a mensagem de cada alerta é escrita no console. Devolve quantos foram enviados.
+ * * OBJECTIVE: Enviar os alertas reservados, escrevendo a mensagem de cada um no console. Devolve quantos foram enviados.
  */
 async function enviarAlertasVencidos() {
   const LAlertas = await reservarAlertasParaEnvio();
