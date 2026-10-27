@@ -1,5 +1,4 @@
-# Fica fora da imagem: dependências do Windows (o Docker instala as dele),
-# arquivos gerados e o .env local (o Dockerfile cria o dele).
+# Fora da imagem: dependências locais, arquivos gerados e o .env local.
 node_modules
 dist
 .quasar

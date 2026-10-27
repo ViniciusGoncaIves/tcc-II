@@ -4,9 +4,7 @@ import { ReceitasService } from '@/services/receitas';
 // Opção do filtro de situação que traz as receitas de qualquer situação.
 const TODAS = 'TODAS';
 
-// As receitas nunca são apagadas, então a lista só cresce: cada troca de
-// filtro busca na API só as receitas pedidas. Os filtros ficam guardados
-// aqui para continuarem iguais ao voltar do detalhe para a lista.
+// Filtros guardados aqui para continuarem ao voltar do detalhe.
 export const useReceitasStore = defineStore('receitas', {
   state: () => ({
     lista: [],

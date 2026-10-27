@@ -328,8 +328,7 @@ const LLinhas = computed(() =>
   )
 );
 
-// O administrador não muda o próprio perfil: virar operador o tiraria
-// desta tela na hora, e só outro administrador poderia desfazer.
+// Não mudar o próprio perfil evita perder o acesso a esta tela.
 const LEditandoProprio = computed(() => ehProprioUsuario(LEmEdicao.value));
 
 /**

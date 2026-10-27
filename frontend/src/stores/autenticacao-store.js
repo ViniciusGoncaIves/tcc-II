@@ -1,8 +1,7 @@
 import { defineStore } from 'pinia';
 import { AutenticacaoService } from '@/services/autenticacao';
 
-// No navegador ficam só o token e os dados básicos do usuário, no
-// sessionStorage, que se apaga ao fechar a aba ou o navegador.
+// Token e dados básicos no sessionStorage, que se apaga ao fechar a aba.
 const CHAVE_TOKEN = 'dosecerta_token';
 const CHAVE_USUARIO = 'dosecerta_usuario';
 const TIPO_ADMINISTRADOR = 'ADMIN';

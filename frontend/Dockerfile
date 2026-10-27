@@ -1,24 +1,22 @@
-# Imagem do front do DoseCerta, usada pelo docker-compose.yml da raiz.
+# Imagem do front do DoseCerta.
 
-# Etapa 1: o Node monta o front (quasar build).
+# Etapa 1: monta o front com o Node.
 FROM node:24-alpine AS montagem
 
 WORKDIR /app
 
 # Dependências antes do código, para o Docker reaproveitar esta etapa.
-# O --ignore-scripts pula o "quasar prepare" do postinstall, que precisa do
-# projeto inteiro; o próprio build faz essa preparação depois.
+# --ignore-scripts: o "quasar prepare" do postinstall precisa do projeto inteiro.
 COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts
 
 COPY . .
 
-# Endereço da API como o navegador enxerga (o front roda no navegador, fora
-# da rede do Docker). Fica gravado no build e é visível: nunca usar segredo.
+# Endereço da API visto pelo navegador; fica visível no build.
 ARG QCLI_API_URL=http://localhost:3000
 RUN echo "QCLI_API_URL=$QCLI_API_URL" > .env && npx quasar build
 
-# Etapa 2: só os arquivos prontos, servidos pelo nginx. O Node fica de fora.
+# Etapa 2: só os arquivos prontos, servidos pelo nginx.
 FROM nginx:stable-alpine
 
 COPY --from=montagem /app/dist/spa /usr/share/nginx/html

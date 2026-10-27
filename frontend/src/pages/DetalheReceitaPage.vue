@@ -257,7 +257,6 @@ function cancelar() {
 
 onMounted(() => carregarReceita(LRota.params.id));
 
-// Ao trocar o id no endereço, o Vue reaproveita esta página sem montá-la de
-// novo: é preciso buscar a outra receita.
+// Outro id no endereço reaproveita a página: busca a nova receita.
 onBeforeRouteUpdate((ADestino) => carregarReceita(ADestino.params.id));
 </script>

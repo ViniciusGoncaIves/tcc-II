@@ -12,9 +12,7 @@ function ordenarPorNome(ALista) {
   );
 }
 
-// A lista tem os pacientes ativos e os inativos: a tela filtra a situação
-// sem uma nova busca. Depois de cada alteração, a lista é atualizada com o
-// registro que a API devolve, também sem uma nova busca.
+// Guarda ativos e inativos: a tela filtra sem buscar de novo na API.
 export const usePacientesStore = defineStore('pacientes', {
   state: () => ({
     lista: [],
