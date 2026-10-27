@@ -1,0 +1,78 @@
+# DoseCerta no Docker: banco, API e front com um comando só.
+# Uso (na raiz, com o Docker Desktop aberto e o .env preenchido):
+#   docker compose up -d --build   sobe tudo (front em http://localhost:9000)
+#   docker compose logs db         senha provisória do admin, no primeiro uso
+#   docker compose down            desliga (os dados ficam no volume)
+#   docker compose down -v         desliga e APAGA o banco do contêiner
+name: dosecerta
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?defina POSTGRES_DB no .env}
+      POSTGRES_USER: ${POSTGRES_USER:?defina POSTGRES_USER no .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASS:?defina POSTGRES_PASS no .env}
+      TZ: America/Sao_Paulo
+    # 5433 no computador, para não conflitar com um PostgreSQL local na 5432.
+    ports:
+      - '5433:5432'
+    volumes:
+      - dados_banco:/var/lib/postgresql/data
+      # Os scripts só rodam com o banco vazio, em ordem alfabética: o número
+      # na frente garante a ordem certa sem renomear os arquivos originais.
+      - ./backend/database/PGCRYPTO.sql:/docker-entrypoint-initdb.d/01-PGCRYPTO.sql:ro
+      - ./backend/database/TYPES.sql:/docker-entrypoint-initdb.d/02-TYPES.sql:ro
+      - ./backend/database/TABELA_USUARIO.sql:/docker-entrypoint-initdb.d/03-TABELA_USUARIO.sql:ro
+      - ./backend/database/TABELA_PACIENTE.sql:/docker-entrypoint-initdb.d/04-TABELA_PACIENTE.sql:ro
+      - ./backend/database/TABELA_MEDICAMENTO.sql:/docker-entrypoint-initdb.d/05-TABELA_MEDICAMENTO.sql:ro
+      - ./backend/database/TABELA_RECEITA.sql:/docker-entrypoint-initdb.d/06-TABELA_RECEITA.sql:ro
+      - ./backend/database/TABELA_ITENS_RECEITA.sql:/docker-entrypoint-initdb.d/07-TABELA_ITENS_RECEITA.sql:ro
+      - ./backend/database/TABELA_ALERTA.sql:/docker-entrypoint-initdb.d/08-TABELA_ALERTA.sql:ro
+      - ./backend/database/INDEX.sql:/docker-entrypoint-initdb.d/09-INDEX.sql:ro
+      - ./backend/database/USUARIO_INICIAL.sql:/docker-entrypoint-initdb.d/10-USUARIO_INICIAL.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./backend
+    environment:
+      PORT: 3000
+      # Dentro da rede do Docker, o banco é encontrado pelo nome do serviço.
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASS: ${POSTGRES_PASS}
+      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
+      JWT_EXPIRACAO: 8h
+      FRONTEND_URL: http://localhost:9000
+      TZ: America/Sao_Paulo
+    ports:
+      - '3000:3000'
+    volumes:
+      # Sessão do WhatsApp (parte 8): sem o volume, o QR code teria de ser
+      # lido de novo a cada vez que o contêiner fosse recriado.
+      - sessao_whatsapp:/app/sessao-whatsapp
+    # A API só sobe depois que o banco responde.
+    depends_on:
+      db:
+        condition: service_healthy
+
+  front:
+    build:
+      context: ./frontend
+      args:
+        QCLI_API_URL: http://localhost:3000
+    ports:
+      - '9000:80'
+    depends_on:
+      - api
+
+# Sem "restart": nada volta a rodar sozinho ao abrir o Docker Desktop.
+volumes:
+  dados_banco:
+  sessao_whatsapp:

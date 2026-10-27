@@ -1,0 +1,9 @@
+# Fica fora da imagem: dependências do Windows (o Docker instala as dele),
+# arquivos gerados e o .env local (o Dockerfile cria o dele).
+node_modules
+dist
+.quasar
+.env*
+Dockerfile
+.dockerignore
+npm-debug.log*
