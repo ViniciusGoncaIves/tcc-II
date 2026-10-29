@@ -3,6 +3,7 @@ const repository = require('../repositories/alertas');
 const receitasRepository = require('../repositories/receitas');
 
 const LIMITE_ALERTAS_POR_RODADA = 50;
+const MILISSEGUNDOS_POR_HORA = 3600000;
 
 /**
  * * AUTHOR: Vinícius Gonçalves
@@ -102,7 +103,96 @@ async function expirarAlertas() {
   });
 }
 
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 28/10/2026 21:40
+ * * OBJECTIVE: Confirmar a dose 1 votada pelo paciente em uma única transação: marca a confirmação, inicia o item e cria as doses seguintes a partir dela (ou conclui o item de dose única). Devolve a situação (CONFIRMADA, JA_CONFIRMADA ou INDISPONIVEL) com os dados para a resposta ao paciente.
+ */
+async function confirmarPrimeiraDose(AIdAlerta) {
+  return db.transacao(async (AConexao) => {
+    const LAlerta = await repository.buscarPrimeiraDoseParaConfirmacao(
+      AConexao,
+      AIdAlerta
+    );
+    if (!LAlerta || !['ENVIADO', 'CONFIRMADO'].includes(LAlerta.status)) {
+      return { situacao: 'INDISPONIVEL' };
+    }
+    const LDados = {
+      nome_paciente: LAlerta.nome_paciente,
+      nome_medicamento: LAlerta.nome_medicamento,
+      dose: LAlerta.dose
+    };
+    if (LAlerta.status === 'CONFIRMADO') {
+      return {
+        situacao: 'JA_CONFIRMADA',
+        ...LDados,
+        horario_confirmacao: LAlerta.horario_confirmacao
+      };
+    }
+    const LHorarioConfirmacao = await repository.confirmarAlerta(
+      AConexao,
+      AIdAlerta
+    );
+    const LItem = await receitasRepository.iniciarItemReceita(
+      AConexao,
+      LAlerta.iditensreceita,
+      LHorarioConfirmacao
+    );
+    if (!LItem) {
+      throw new Error('o item da dose 1 não está aguardando confirmação');
+    }
+    let LProximaDose = null;
+    if (LItem.status === 'CONCLUIDO') {
+      await encerrarReceitaSemItensAtivos(AConexao, LItem.idreceita);
+    } else {
+      await repository.cadastrarDosesSeguintes(
+        AConexao,
+        LAlerta.iditensreceita,
+        LHorarioConfirmacao
+      );
+      LProximaDose = new Date(
+        LHorarioConfirmacao.getTime() +
+          LAlerta.intervalo_horas * MILISSEGUNDOS_POR_HORA
+      );
+    }
+    return {
+      situacao: 'CONFIRMADA',
+      ...LDados,
+      horario_confirmacao: LHorarioConfirmacao,
+      proxima_dose: LProximaDose
+    };
+  });
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 28/10/2026 21:41
+ * * OBJECTIVE: Expirar as doses 2 em diante com mais de 30 minutos de atraso, antes do envio. Devolve quantas expiraram.
+ */
+async function expirarDosesAtrasadas() {
+  return repository.expirarDosesSeguintesAtrasadas();
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 28/10/2026 21:42
+ * * OBJECTIVE: Concluir, em uma única transação, os itens em andamento sem dose agendada e encerrar as receitas que ficarem sem item ativo. Devolve quantos itens foram concluídos.
+ */
+async function concluirItensFinalizados() {
+  return db.transacao(async (AConexao) => {
+    const LIdsReceitas =
+      await receitasRepository.concluirItensSemDosesPendentes(AConexao);
+    for (const LIdReceita of new Set(LIdsReceitas)) {
+      await encerrarReceitaSemItensAtivos(AConexao, LIdReceita);
+    }
+    return LIdsReceitas.length;
+  });
+}
+
 module.exports = {
   enviarAlertasVencidos,
-  expirarAlertas
+  expirarAlertas,
+  confirmarPrimeiraDose,
+  expirarDosesAtrasadas,
+  concluirItensFinalizados
 };

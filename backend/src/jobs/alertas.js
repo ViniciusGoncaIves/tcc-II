@@ -7,32 +7,48 @@ let LNovaRodadaPedida = false;
 
 /**
  * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 28/10/2026 21:43
+ * * OBJECTIVE: Executar uma etapa da rodada, escrevendo no console quantos registros ela tratou; o erro da etapa é registrado e não impede as seguintes.
+ */
+async function executarEtapa(AAcao, AEtapa, AMensagem) {
+  try {
+    const LQuantidade = await AAcao();
+    if (LQuantidade > 0) {
+      console.log(`agendador: ${LQuantidade} ${AMensagem}`);
+    }
+  } catch (LErro) {
+    console.error(
+      `agendador: erro ao ${AEtapa}: ${LErro.message || LErro.code}`
+    );
+  }
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
  * * DATE: 22/10/2026 19:37
- * * OBJECTIVE: Fazer uma verificação completa dos alertas: primeiro expira as doses 1 sem confirmação, depois envia o que venceu; o erro de uma etapa é registrado no console e não impede a outra.
+ * * OBJECTIVE: Fazer uma verificação completa dos alertas: expira as doses 1 sem confirmação e as doses seguintes muito atrasadas, envia o que venceu e conclui os itens sem dose agendada.
  */
 async function processarAlertas() {
-  try {
-    const LExpirados = await service.expirarAlertas();
-    if (LExpirados > 0) {
-      console.log(
-        `agendador: ${LExpirados} alerta(s) expirado(s) sem confirmação`
-      );
-    }
-  } catch (LErro) {
-    console.error(
-      `agendador: erro ao expirar alertas: ${LErro.message || LErro.code}`
-    );
-  }
-  try {
-    const LEnviados = await service.enviarAlertasVencidos();
-    if (LEnviados > 0) {
-      console.log(`agendador: ${LEnviados} alerta(s) enviado(s)`);
-    }
-  } catch (LErro) {
-    console.error(
-      `agendador: erro ao enviar alertas: ${LErro.message || LErro.code}`
-    );
-  }
+  await executarEtapa(
+    service.expirarAlertas,
+    'expirar alertas',
+    'alerta(s) expirado(s) sem confirmação'
+  );
+  await executarEtapa(
+    service.expirarDosesAtrasadas,
+    'expirar doses atrasadas',
+    'dose(s) expirada(s) por atraso de mais de 30 minutos'
+  );
+  await executarEtapa(
+    service.enviarAlertasVencidos,
+    'enviar alertas',
+    'alerta(s) enviado(s)'
+  );
+  await executarEtapa(
+    service.concluirItensFinalizados,
+    'concluir itens',
+    'item(ns) de receita concluído(s)'
+  );
 }
 
 /**

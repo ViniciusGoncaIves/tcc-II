@@ -3,6 +3,8 @@ const ErroApi = require('../errors/ErroApi');
 const FORMATO_UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const FORMATO_DATA = /^\d{4}-\d{2}-\d{2}$/;
+// 55, DDD e os 9 dígitos do celular, só números.
+const FORMATO_TELEFONE = /^55\d{11}$/;
 const VALORES_FILTRO_ATIVO = ['true', 'false'];
 const FORMATO_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const TAMANHO_MINIMO_SENHA = 8;
@@ -56,6 +58,12 @@ function validarPaciente(req, res, next) {
   const LDados = req.body || {};
   if (!textoPreenchido(LDados.nome) || !textoPreenchido(LDados.telefone)) {
     throw new ErroApi(400, 'campos obrigatórios faltando');
+  }
+  if (!FORMATO_TELEFONE.test(LDados.telefone.trim())) {
+    throw new ErroApi(
+      400,
+      'o telefone deve ter só números: 55, DDD e os 9 dígitos do celular'
+    );
   }
   if (LDados.data_nascimento && !dataValida(LDados.data_nascimento)) {
     throw new ErroApi(

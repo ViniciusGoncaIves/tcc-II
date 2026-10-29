@@ -123,7 +123,7 @@ async function buscarReceitaPorId(AId) {
 /**
  * * AUTHOR: Vinícius Gonçalves
  * * DATE: 21/10/2026 21:19
- * * OBJECTIVE: Consultar os itens de uma receita com o nome do medicamento e o resumo das doses: situação da dose 1, envios, doses enviadas, próxima dose e término previsto.
+ * * OBJECTIVE: Consultar os itens de uma receita com o nome do medicamento e o resumo das doses: situação da dose 1, envios, doses enviadas, doses seguintes expiradas, próxima dose e término previsto.
  */
 async function buscarItensReceita(AIdReceita) {
   const LSql = `SELECT ITENS_RECEITA.IDITENSRECEITA,
@@ -138,6 +138,8 @@ async function buscarItensReceita(AIdReceita) {
                        MIN(ALERTA.TENTATIVAS) FILTER (WHERE ALERTA.NUMERO_DOSE = 1) AS ENVIOS_PRIMEIRA_DOSE,
                        MIN(ALERTA.HORARIO_CONFIRMACAO) FILTER (WHERE ALERTA.NUMERO_DOSE = 1) AS HORARIO_CONFIRMACAO,
                        (COUNT(ALERTA.IDALERTA) FILTER (WHERE ALERTA.HORARIO_ENVIO IS NOT NULL))::INTEGER AS DOSES_ENVIADAS,
+                       (COUNT(ALERTA.IDALERTA) FILTER (WHERE ALERTA.STATUS = 'EXPIRADO'
+                                                         AND ALERTA.NUMERO_DOSE > 1))::INTEGER AS DOSES_EXPIRADAS,
                        MIN(ALERTA.HORARIO_PREVISTO) FILTER (WHERE ALERTA.STATUS = 'PENDENTE') AS PROXIMA_DOSE,
                        MIN(ALERTA.HORARIO_CONFIRMACAO) FILTER (WHERE ALERTA.NUMERO_DOSE = 1)
                          + ITENS_RECEITA.DURACAO_DIAS * INTERVAL '1 day' AS DATA_FIM_PREVISTA
@@ -224,6 +226,52 @@ async function concluirReceita(AConexao, AIdReceita) {
   await AConexao.query(LSql, [AIdReceita]);
 }
 
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 28/10/2026 21:38
+ * * OBJECTIVE: Iniciar o item cuja dose 1 foi confirmada, dentro da transação recebida: o início passa a ser o horário da confirmação e o item fica em andamento, ou concluído quando tem uma dose só; devolve a receita e a nova situação do item.
+ */
+async function iniciarItemReceita(
+  AConexao,
+  AIdItemReceita,
+  AHorarioConfirmacao
+) {
+  const LSql = `UPDATE ITENS_RECEITA
+                   SET STATUS = CASE
+                                  WHEN ITENS_RECEITA.QUANTIDADE_ALERTA = 1
+                                  THEN 'CONCLUIDO'::STATUS_ITEM_RECEITA
+                                  ELSE 'EM_ANDAMENTO'::STATUS_ITEM_RECEITA
+                                END,
+                       DATA_INICIO = $2
+                 WHERE ITENS_RECEITA.IDITENSRECEITA = $1
+                   AND ITENS_RECEITA.STATUS = 'AGUARDANDO_CONFIRMACAO'
+             RETURNING ITENS_RECEITA.IDRECEITA,
+                       ITENS_RECEITA.STATUS`;
+  const LResultado = await AConexao.query(LSql, [
+    AIdItemReceita,
+    AHorarioConfirmacao
+  ]);
+  return LResultado.rows[0];
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 28/10/2026 21:39
+ * * OBJECTIVE: Concluir, dentro da transação recebida, os itens em andamento que não têm mais nenhuma dose agendada (a última foi enviada ou expirou); devolve os ids das receitas desses itens.
+ */
+async function concluirItensSemDosesPendentes(AConexao) {
+  const LSql = `UPDATE ITENS_RECEITA
+                   SET STATUS = 'CONCLUIDO'
+                 WHERE ITENS_RECEITA.STATUS = 'EM_ANDAMENTO'
+                   AND NOT EXISTS (SELECT ALERTA.IDALERTA
+                                     FROM ALERTA
+                                    WHERE ALERTA.IDITENSRECEITA = ITENS_RECEITA.IDITENSRECEITA
+                                      AND ALERTA.STATUS = 'PENDENTE')
+             RETURNING ITENS_RECEITA.IDRECEITA`;
+  const LResultado = await AConexao.query(LSql);
+  return LResultado.rows.map((ALinha) => ALinha.idreceita);
+}
+
 module.exports = {
   cadastrarReceita,
   cadastrarItemReceita,
@@ -235,5 +283,7 @@ module.exports = {
   cancelarItensReceita,
   cancelarItensExpirados,
   resumirItensReceita,
-  concluirReceita
+  concluirReceita,
+  iniciarItemReceita,
+  concluirItensSemDosesPendentes
 };

@@ -1,3 +1,5 @@
+const db = require('../configs');
+
 /**
  * * AUTHOR: Vinícius Gonçalves
  * * DATE: 21/10/2026 19:32
@@ -113,10 +115,96 @@ async function expirarAlertasSemConfirmacao(AConexao) {
   return LResultado.rows.map((ALinha) => ALinha.iditensreceita);
 }
 
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 28/10/2026 21:34
+ * * OBJECTIVE: Buscar e travar, dentro da transação recebida, a dose 1 que o paciente vai confirmar, com os dados do item, do medicamento e do paciente; outra confirmação do mesmo alerta espera esta transação terminar.
+ */
+async function buscarPrimeiraDoseParaConfirmacao(AConexao, AIdAlerta) {
+  const LSql = `SELECT ALERTA.IDALERTA,
+                       ALERTA.IDITENSRECEITA,
+                       ALERTA.STATUS,
+                       ALERTA.HORARIO_CONFIRMACAO,
+                       ITENS_RECEITA.DOSE,
+                       ITENS_RECEITA.INTERVALO_HORAS,
+                       MEDICAMENTO.NOME AS NOME_MEDICAMENTO,
+                       PACIENTE.NOME AS NOME_PACIENTE
+                  FROM ALERTA
+                  JOIN ITENS_RECEITA ON ITENS_RECEITA.IDITENSRECEITA = ALERTA.IDITENSRECEITA
+                  JOIN MEDICAMENTO ON MEDICAMENTO.IDMEDICAMENTO = ITENS_RECEITA.IDMEDICAMENTO
+                  JOIN RECEITA ON RECEITA.IDRECEITA = ITENS_RECEITA.IDRECEITA
+                  JOIN PACIENTE ON PACIENTE.IDPACIENTE = RECEITA.IDPACIENTE
+                 WHERE ALERTA.IDALERTA = $1
+                   AND ALERTA.REQUER_CONFIRMACAO = TRUE
+                   FOR UPDATE OF ALERTA`;
+  const LResultado = await AConexao.query(LSql, [AIdAlerta]);
+  return LResultado.rows[0];
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 28/10/2026 21:35
+ * * OBJECTIVE: Marcar a dose 1 como confirmada, dentro da transação recebida, encerrando os reenvios; devolve o horário da confirmação.
+ */
+async function confirmarAlerta(AConexao, AIdAlerta) {
+  const LSql = `UPDATE ALERTA
+                   SET STATUS = 'CONFIRMADO',
+                       HORARIO_CONFIRMACAO = NOW(),
+                       PROXIMA_TENTATIVA = NULL
+                 WHERE ALERTA.IDALERTA = $1
+             RETURNING ALERTA.HORARIO_CONFIRMACAO`;
+  const LResultado = await AConexao.query(LSql, [AIdAlerta]);
+  return LResultado.rows[0].horario_confirmacao;
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 28/10/2026 21:36
+ * * OBJECTIVE: Criar, dentro da transação recebida e num único comando, as doses 2 até a última do item, cada uma prevista para a confirmação mais (número da dose - 1) intervalos; devolve quantas foram criadas.
+ */
+async function cadastrarDosesSeguintes(
+  AConexao,
+  AIdItemReceita,
+  AHorarioConfirmacao
+) {
+  const LSql = `INSERT INTO ALERTA (IDITENSRECEITA, NUMERO_DOSE, HORARIO_PREVISTO)
+                SELECT ITENS_RECEITA.IDITENSRECEITA,
+                       NUMERO_DOSE,
+                       $2::TIMESTAMPTZ
+                         + (NUMERO_DOSE - 1) * ITENS_RECEITA.INTERVALO_HORAS * INTERVAL '1 hour'
+                  FROM ITENS_RECEITA
+                 CROSS JOIN GENERATE_SERIES(2, ITENS_RECEITA.QUANTIDADE_ALERTA) AS NUMERO_DOSE
+                 WHERE ITENS_RECEITA.IDITENSRECEITA = $1`;
+  const LResultado = await AConexao.query(LSql, [
+    AIdItemReceita,
+    AHorarioConfirmacao
+  ]);
+  return LResultado.rowCount;
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 28/10/2026 21:37
+ * * OBJECTIVE: Expirar sem envio as doses 2 em diante que passaram mais de 30 minutos do horário previsto (API desligada ou WhatsApp desconectado), para um lembrete atrasado não levar o paciente a tomar duas doses próximas; devolve quantas expiraram.
+ */
+async function expirarDosesSeguintesAtrasadas() {
+  const LSql = `UPDATE ALERTA
+                   SET STATUS = 'EXPIRADO'
+                 WHERE ALERTA.STATUS = 'PENDENTE'
+                   AND ALERTA.REQUER_CONFIRMACAO = FALSE
+                   AND ALERTA.HORARIO_PREVISTO < NOW() - INTERVAL '30 minutes'`;
+  const LResultado = await db.query(LSql);
+  return LResultado.rowCount;
+}
+
 module.exports = {
   cadastrarAlertaPrimeiraDose,
   cancelarAlertasReceita,
   buscarAlertasParaEnvio,
   marcarAlertasEnviados,
-  expirarAlertasSemConfirmacao
+  expirarAlertasSemConfirmacao,
+  buscarPrimeiraDoseParaConfirmacao,
+  confirmarAlerta,
+  cadastrarDosesSeguintes,
+  expirarDosesSeguintesAtrasadas
 };
