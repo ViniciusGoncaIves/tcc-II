@@ -184,7 +184,7 @@ function descreverPrimeiraDose(AItem) {
 /**
  * * AUTHOR: Vinícius Gonçalves
  * * DATE: 25/10/2026 19:34
- * * OBJECTIVE: Montar o resumo das doses do item: primeira dose, doses enviadas, próxima dose e término previsto.
+ * * OBJECTIVE: Montar o resumo das doses do item: primeira dose, doses enviadas, doses expiradas (só quando houver), próxima dose e término previsto.
  */
 function descreverItem(AItem) {
   const LLinhas = [
@@ -194,6 +194,12 @@ function descreverItem(AItem) {
       valor: `${AItem.doses_enviadas} de ${AItem.quantidade_alerta}`
     }
   ];
+  if (AItem.doses_expiradas > 0) {
+    LLinhas.push({
+      rotulo: 'Doses expiradas',
+      valor: String(AItem.doses_expiradas)
+    });
+  }
   if (AItem.proxima_dose) {
     LLinhas.push({
       rotulo: 'Próxima dose',
