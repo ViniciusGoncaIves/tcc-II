@@ -11,6 +11,8 @@ const PERGUNTA_PARADA = 'Deseja mesmo parar de receber todos os lembretes?';
 const OPCAO_CONFIRMAR_PARADA = 'Sim, parar';
 const OPCAO_CONTINUAR = 'Não, continuar';
 const MENSAGEM_INDISPONIVEL = 'Esta dose não está mais aguardando confirmação.';
+const MENSAGEM_PACIENTE_INATIVO =
+  'Você não está recebendo lembretes no momento. Se quiser voltar a receber, procure a unidade de saúde.';
 
 /**
  * * AUTHOR: Vinícius Gonçalves
@@ -57,8 +59,21 @@ async function enviarConfirmacaoParada(AIdPaciente, ADestino) {
 
 /**
  * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 30/10/2026 20:06
+ * * OBJECTIVE: Atender ao pedido de parada: paciente ativo recebe a enquete de confirmação; paciente inativo só é avisado de que não recebe lembretes.
+ */
+async function responderPedidoParada(APaciente, ADestino) {
+  if (APaciente.ativo) {
+    await enviarConfirmacaoParada(APaciente.idpaciente, ADestino);
+    return;
+  }
+  await whatsapp.enviarTexto(ADestino, MENSAGEM_PACIENTE_INATIVO);
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
  * * DATE: 29/10/2026 20:05
- * * OBJECTIVE: Responder ao voto na enquete da dose 1: "Sim, tomei" confirma a dose; "Ainda não" só orienta (ou avisa que já foi confirmada); "Parar de receber alertas" pede a confirmação da parada.
+ * * OBJECTIVE: Responder ao voto na enquete da dose 1: "Sim, tomei" confirma a dose; "Ainda não" só orienta (ou avisa que já foi confirmada); "Parar de receber alertas" atende ao pedido de parada.
  */
 async function responderVotoPrimeiraDose(AEnquete, AOpcao) {
   if (AOpcao === OPCAO_TOMEI) {
@@ -94,16 +109,26 @@ async function responderVotoPrimeiraDose(AEnquete, AOpcao) {
     return;
   }
   if (AOpcao === OPCAO_PARAR) {
-    await enviarConfirmacaoParada(AEnquete.idpaciente, AEnquete.destino);
+    const LPaciente = await pacientesRepository.buscarPacientePorId(
+      AEnquete.idpaciente
+    );
+    await responderPedidoParada(LPaciente, AEnquete.destino);
   }
 }
 
 /**
  * * AUTHOR: Vinícius Gonçalves
  * * DATE: 29/10/2026 20:06
- * * OBJECTIVE: Responder ao voto na enquete de confirmação da parada: "Sim, parar" cancela as receitas ativas e inativa o paciente; "Não, continuar" mantém tudo como está.
+ * * OBJECTIVE: Responder ao voto na enquete de confirmação da parada: "Sim, parar" cancela as receitas ativas e inativa o paciente; "Não, continuar" mantém tudo como está. Paciente já inativo só é avisado de que não recebe lembretes, sem nada mudar.
  */
 async function responderVotoParada(AEnquete, AOpcao) {
+  const LPaciente = await pacientesRepository.buscarPacientePorId(
+    AEnquete.idpaciente
+  );
+  if (!LPaciente.ativo) {
+    await whatsapp.enviarTexto(AEnquete.destino, MENSAGEM_PACIENTE_INATIVO);
+    return;
+  }
   if (AOpcao === OPCAO_CONFIRMAR_PARADA) {
     await pacientesService.pararAlertasDoPaciente(AEnquete.idpaciente);
     await whatsapp.enviarTexto(
@@ -153,14 +178,14 @@ function variacoesTelefone(ATelefone) {
 /**
  * * AUTHOR: Vinícius Gonçalves
  * * DATE: 29/10/2026 20:09
- * * OBJECTIVE: Tratar o "PARAR" escrito: se vier de um paciente ativo cadastrado, envia a enquete de confirmação; de qualquer outro número, é ignorado.
+ * * OBJECTIVE: Tratar o "PARAR" escrito: se vier de um paciente cadastrado, atende ao pedido de parada; de qualquer outro número, é ignorado.
  */
 async function tratarPedidoParada(APedido) {
-  const LPaciente = await pacientesRepository.buscarPacienteAtivoPorTelefones(
+  const LPaciente = await pacientesRepository.buscarPacientePorTelefones(
     variacoesTelefone(APedido.telefone)
   );
   if (LPaciente) {
-    await enviarConfirmacaoParada(LPaciente.idpaciente, APedido.destino);
+    await responderPedidoParada(LPaciente, APedido.destino);
   }
 }
 

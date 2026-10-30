@@ -137,15 +137,15 @@ async function inativarPacientePorPedido(AConexao, AId) {
 /**
  * * AUTHOR: Vinícius Gonçalves
  * * DATE: 29/10/2026 19:38
- * * OBJECTIVE: Consultar o paciente ativo dono de um dos telefones informados.
+ * * OBJECTIVE: Consultar o paciente dono de um dos telefones informados, ativo ou não.
  */
-async function buscarPacienteAtivoPorTelefones(ATelefones) {
+async function buscarPacientePorTelefones(ATelefones) {
   const LSql = `SELECT PACIENTE.IDPACIENTE,
                        PACIENTE.NOME,
-                       PACIENTE.TELEFONE
+                       PACIENTE.TELEFONE,
+                       PACIENTE.ATIVO
                   FROM PACIENTE
-                 WHERE PACIENTE.TELEFONE = ANY($1::VARCHAR[])
-                   AND PACIENTE.ATIVO = TRUE`;
+                 WHERE PACIENTE.TELEFONE = ANY($1::VARCHAR[])`;
   const LResultado = await db.query(LSql, [ATelefones]);
   return LResultado.rows[0];
 }
@@ -157,5 +157,5 @@ module.exports = {
   alterarPaciente,
   alterarSituacaoPaciente,
   inativarPacientePorPedido,
-  buscarPacienteAtivoPorTelefones
+  buscarPacientePorTelefones
 };
