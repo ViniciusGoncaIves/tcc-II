@@ -1,6 +1,5 @@
 const service = require('../services/alertas');
-
-const SEGUNDOS_ENTRE_RODADAS = 60;
+const { SEGUNDOS_ENTRE_RODADAS } = require('../configs/tempo');
 
 let LRodadaEmAndamento = false;
 let LNovaRodadaPedida = false;
@@ -75,7 +74,7 @@ async function executarRodada() {
 /**
  * * AUTHOR: Vinícius Gonçalves
  * * DATE: 22/10/2026 19:42
- * * OBJECTIVE: Iniciar o agendador dos alertas, que roda uma vez na hora e depois a cada minuto.
+ * * OBJECTIVE: Iniciar o agendador dos alertas, que roda uma vez na hora e depois a cada minuto (com mais frequência no teste acelerado).
  */
 function iniciarAgendador() {
   setInterval(executarRodada, SEGUNDOS_ENTRE_RODADAS * 1000);

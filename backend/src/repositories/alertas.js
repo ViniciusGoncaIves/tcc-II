@@ -1,4 +1,5 @@
 const db = require('../configs');
+const tempo = require('../configs/tempo');
 
 /**
  * * AUTHOR: Vinícius Gonçalves
@@ -58,6 +59,7 @@ async function buscarAlertasParaEnvio(AConexao, ALimite) {
                        ITENS_RECEITA.INTERVALO_HORAS,
                        ITENS_RECEITA.QUANTIDADE_ALERTA,
                        MEDICAMENTO.NOME AS NOME_MEDICAMENTO,
+                       RECEITA.IDPACIENTE,
                        PACIENTE.NOME AS NOME_PACIENTE,
                        PACIENTE.TELEFONE
                   FROM ALERTA
@@ -91,10 +93,10 @@ async function marcarAlertasEnviados(AConexao, AIdsAlertas) {
                        TENTATIVAS = ALERTA.TENTATIVAS + 1,
                        PROXIMA_TENTATIVA = CASE
                                              WHEN ALERTA.REQUER_CONFIRMACAO = TRUE
-                                             THEN NOW() + INTERVAL '1 hour'
+                                             THEN NOW() + $2::INTERVAL
                                            END
                  WHERE ALERTA.IDALERTA = ANY($1::UUID[])`;
-  await AConexao.query(LSql, [AIdsAlertas]);
+  await AConexao.query(LSql, [AIdsAlertas, tempo.UMA_HORA]);
 }
 
 /**
@@ -171,13 +173,14 @@ async function cadastrarDosesSeguintes(
                 SELECT ITENS_RECEITA.IDITENSRECEITA,
                        NUMERO_DOSE,
                        $2::TIMESTAMPTZ
-                         + (NUMERO_DOSE - 1) * ITENS_RECEITA.INTERVALO_HORAS * INTERVAL '1 hour'
+                         + (NUMERO_DOSE - 1) * ITENS_RECEITA.INTERVALO_HORAS * $3::INTERVAL
                   FROM ITENS_RECEITA
                  CROSS JOIN GENERATE_SERIES(2, ITENS_RECEITA.QUANTIDADE_ALERTA) AS NUMERO_DOSE
                  WHERE ITENS_RECEITA.IDITENSRECEITA = $1`;
   const LResultado = await AConexao.query(LSql, [
     AIdItemReceita,
-    AHorarioConfirmacao
+    AHorarioConfirmacao,
+    tempo.UMA_HORA
   ]);
   return LResultado.rowCount;
 }
@@ -192,9 +195,61 @@ async function expirarDosesSeguintesAtrasadas() {
                    SET STATUS = 'EXPIRADO'
                  WHERE ALERTA.STATUS = 'PENDENTE'
                    AND ALERTA.REQUER_CONFIRMACAO = FALSE
-                   AND ALERTA.HORARIO_PREVISTO < NOW() - INTERVAL '30 minutes'`;
-  const LResultado = await db.query(LSql);
+                   AND ALERTA.HORARIO_PREVISTO < NOW() - $1::INTERVAL`;
+  const LResultado = await db.query(LSql, [tempo.TOLERANCIA_ATRASO]);
   return LResultado.rowCount;
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 29/10/2026 19:31
+ * * OBJECTIVE: Consultar a situação atual de um alerta e o horário da confirmação, quando houver.
+ */
+async function buscarSituacaoAlerta(AIdAlerta) {
+  const LSql = `SELECT ALERTA.STATUS,
+                       ALERTA.HORARIO_CONFIRMACAO
+                  FROM ALERTA
+                 WHERE ALERTA.IDALERTA = $1`;
+  const LResultado = await db.query(LSql, [AIdAlerta]);
+  return LResultado.rows[0];
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 29/10/2026 19:32
+ * * OBJECTIVE: Devolver à situação anterior o alerta reservado cujo envio falhou, para ele sair numa próxima rodada sem contar como tentativa.
+ */
+async function devolverAlerta(AAlerta) {
+  const LSql = `UPDATE ALERTA
+                   SET STATUS = $2,
+                       HORARIO_ENVIO = $3,
+                       TENTATIVAS = $4,
+                       PROXIMA_TENTATIVA = $5
+                 WHERE ALERTA.IDALERTA = $1
+                   AND ALERTA.STATUS = 'ENVIADO'`;
+  await db.query(LSql, [
+    AAlerta.idalerta,
+    AAlerta.status,
+    AAlerta.horario_envio,
+    AAlerta.tentativas,
+    AAlerta.proxima_tentativa
+  ]);
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 29/10/2026 19:33
+ * * OBJECTIVE: Expirar a dose 2 em diante que não pôde ser enviada porque o telefone do paciente não tem WhatsApp, desfazendo o envio marcado na reserva.
+ */
+async function expirarAlertaSemWhatsApp(AIdAlerta) {
+  const LSql = `UPDATE ALERTA
+                   SET STATUS = 'EXPIRADO',
+                       HORARIO_ENVIO = NULL,
+                       TENTATIVAS = 0
+                 WHERE ALERTA.IDALERTA = $1
+                   AND ALERTA.STATUS = 'ENVIADO'
+                   AND ALERTA.REQUER_CONFIRMACAO = FALSE`;
+  await db.query(LSql, [AIdAlerta]);
 }
 
 module.exports = {
@@ -206,5 +261,8 @@ module.exports = {
   buscarPrimeiraDoseParaConfirmacao,
   confirmarAlerta,
   cadastrarDosesSeguintes,
-  expirarDosesSeguintesAtrasadas
+  expirarDosesSeguintesAtrasadas,
+  buscarSituacaoAlerta,
+  devolverAlerta,
+  expirarAlertaSemWhatsApp
 };

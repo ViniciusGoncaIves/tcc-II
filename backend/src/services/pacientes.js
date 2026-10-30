@@ -1,5 +1,7 @@
+const db = require('../configs');
 const repository = require('../repositories/pacientes');
 const receitasRepository = require('../repositories/receitas');
+const alertasRepository = require('../repositories/alertas');
 const ErroApi = require('../errors/ErroApi');
 
 /**
@@ -94,11 +96,39 @@ async function reativarPaciente(AId) {
   return alterarSituacao(AId, true);
 }
 
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 29/10/2026 20:02
+ * * OBJECTIVE: Atender ao pedido do paciente para não receber mais alertas, em uma única transação: cancela todas as receitas ativas dele (com os itens e os alertas que ainda iam sair) e o inativa com esse motivo, para nenhuma receita nova voltar a enviar mensagens sem ele autorizar. Devolve quantas receitas foram canceladas.
+ */
+async function pararAlertasDoPaciente(AIdPaciente) {
+  return db.transacao(async (AConexao) => {
+    const LIdsReceitas =
+      await receitasRepository.buscarIdsReceitasAtivasPorPaciente(
+        AConexao,
+        AIdPaciente
+      );
+    for (const LIdReceita of LIdsReceitas) {
+      await receitasRepository.cancelarReceita(
+        AConexao,
+        LIdReceita,
+        null,
+        'PEDIDO_DO_PACIENTE'
+      );
+      await receitasRepository.cancelarItensReceita(AConexao, LIdReceita);
+      await alertasRepository.cancelarAlertasReceita(AConexao, LIdReceita);
+    }
+    await repository.inativarPacientePorPedido(AConexao, AIdPaciente);
+    return LIdsReceitas.length;
+  });
+}
+
 module.exports = {
   buscarPacientes,
   buscarPacientePorId,
   cadastrarPaciente,
   alterarPaciente,
   inativarPaciente,
-  reativarPaciente
+  reativarPaciente,
+  pararAlertasDoPaciente
 };

@@ -1,4 +1,5 @@
 const db = require('../configs');
+const tempo = require('../configs/tempo');
 
 /**
  * * AUTHOR: Vinícius Gonçalves
@@ -95,7 +96,7 @@ async function buscarReceitas(AFiltros) {
 /**
  * * AUTHOR: Vinícius Gonçalves
  * * DATE: 21/10/2026 21:18
- * * OBJECTIVE: Consultar uma receita pelo id, com o nome do paciente, do emissor e de quem cancelou, quando for o caso.
+ * * OBJECTIVE: Consultar uma receita pelo id, com o nome do paciente, do emissor e de quem cancelou e o motivo, quando for o caso.
  */
 async function buscarReceitaPorId(AId) {
   const LSql = `SELECT RECEITA.IDRECEITA,
@@ -112,7 +113,8 @@ async function buscarReceitaPorId(AId) {
                        RECEITA.USUARIO_CANCELAMENTO,
                        (SELECT USUARIO.NOME
                           FROM USUARIO
-                         WHERE USUARIO.IDUSUARIO = RECEITA.USUARIO_CANCELAMENTO) AS NOME_USUARIO_CANCELAMENTO
+                         WHERE USUARIO.IDUSUARIO = RECEITA.USUARIO_CANCELAMENTO) AS NOME_USUARIO_CANCELAMENTO,
+                       RECEITA.MOTIVO_CANCELAMENTO
                   FROM RECEITA
                   JOIN PACIENTE ON PACIENTE.IDPACIENTE = RECEITA.IDPACIENTE
                  WHERE RECEITA.IDRECEITA = $1`;
@@ -142,7 +144,7 @@ async function buscarItensReceita(AIdReceita) {
                                                          AND ALERTA.NUMERO_DOSE > 1))::INTEGER AS DOSES_EXPIRADAS,
                        MIN(ALERTA.HORARIO_PREVISTO) FILTER (WHERE ALERTA.STATUS = 'PENDENTE') AS PROXIMA_DOSE,
                        MIN(ALERTA.HORARIO_CONFIRMACAO) FILTER (WHERE ALERTA.NUMERO_DOSE = 1)
-                         + ITENS_RECEITA.DURACAO_DIAS * INTERVAL '1 day' AS DATA_FIM_PREVISTA
+                         + ITENS_RECEITA.DURACAO_DIAS * 24 * $2::INTERVAL AS DATA_FIM_PREVISTA
                   FROM ITENS_RECEITA
                   JOIN MEDICAMENTO ON MEDICAMENTO.IDMEDICAMENTO = ITENS_RECEITA.IDMEDICAMENTO
              LEFT JOIN ALERTA ON ALERTA.IDITENSRECEITA = ITENS_RECEITA.IDITENSRECEITA
@@ -151,23 +153,24 @@ async function buscarItensReceita(AIdReceita) {
                           MEDICAMENTO.NOME
                  ORDER BY MEDICAMENTO.NOME,
                           ITENS_RECEITA.DOSE`;
-  const LResultado = await db.query(LSql, [AIdReceita]);
+  const LResultado = await db.query(LSql, [AIdReceita, tempo.UMA_HORA]);
   return LResultado.rows;
 }
 
 /**
  * * AUTHOR: Vinícius Gonçalves
  * * DATE: 21/10/2026 21:21
- * * OBJECTIVE: Cancelar a receita, dentro da transação recebida, registrando quando e quem cancelou; devolve quantas receitas foram alteradas (0 se ela não estava mais ativa).
+ * * OBJECTIVE: Cancelar a receita, dentro da transação recebida, registrando quando, quem cancelou e o motivo; devolve quantas receitas foram alteradas (0 se ela não estava mais ativa).
  */
-async function cancelarReceita(AConexao, AId, AIdUsuario) {
+async function cancelarReceita(AConexao, AId, AIdUsuario, AMotivo) {
   const LSql = `UPDATE RECEITA
                    SET STATUS = 'CANCELADA',
                        DATA_CANCELAMENTO = NOW(),
-                       USUARIO_CANCELAMENTO = $2
+                       USUARIO_CANCELAMENTO = $2,
+                       MOTIVO_CANCELAMENTO = $3
                  WHERE RECEITA.IDRECEITA = $1
                    AND RECEITA.STATUS = 'ATIVA'`;
-  const LResultado = await AConexao.query(LSql, [AId, AIdUsuario]);
+  const LResultado = await AConexao.query(LSql, [AId, AIdUsuario, AMotivo]);
   return LResultado.rowCount;
 }
 
@@ -272,6 +275,21 @@ async function concluirItensSemDosesPendentes(AConexao) {
   return LResultado.rows.map((ALinha) => ALinha.idreceita);
 }
 
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 29/10/2026 19:36
+ * * OBJECTIVE: Buscar e travar, dentro da transação recebida, as receitas ativas de um paciente; devolve os ids.
+ */
+async function buscarIdsReceitasAtivasPorPaciente(AConexao, AIdPaciente) {
+  const LSql = `SELECT RECEITA.IDRECEITA
+                  FROM RECEITA
+                 WHERE RECEITA.IDPACIENTE = $1
+                   AND RECEITA.STATUS = 'ATIVA'
+                   FOR UPDATE`;
+  const LResultado = await AConexao.query(LSql, [AIdPaciente]);
+  return LResultado.rows.map((ALinha) => ALinha.idreceita);
+}
+
 module.exports = {
   cadastrarReceita,
   cadastrarItemReceita,
@@ -285,5 +303,6 @@ module.exports = {
   resumirItensReceita,
   concluirReceita,
   iniciarItemReceita,
-  concluirItensSemDosesPendentes
+  concluirItensSemDosesPendentes,
+  buscarIdsReceitasAtivasPorPaciente
 };

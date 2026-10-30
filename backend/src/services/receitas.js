@@ -4,6 +4,7 @@ const alertasRepository = require('../repositories/alertas');
 const pacientesRepository = require('../repositories/pacientes');
 const medicamentosRepository = require('../repositories/medicamentos');
 const agendador = require('../jobs/alertas');
+const whatsapp = require('../integrations/whatsapp');
 const ErroApi = require('../errors/ErroApi');
 
 /**
@@ -27,7 +28,7 @@ function normalizarReceita(ADados) {
 /**
  * * AUTHOR: Vinícius Gonçalves
  * * DATE: 21/10/2026 19:32
- * * OBJECTIVE: Garantir que o paciente da receita existe (404) e está ativo (409).
+ * * OBJECTIVE: Garantir que o paciente da receita existe (404) e está ativo (409, com a mensagem própria quando ele pediu para não receber alertas); devolve o paciente.
  */
 async function conferirPaciente(AIdPaciente) {
   const LPaciente = await pacientesRepository.buscarPacientePorId(AIdPaciente);
@@ -38,7 +39,33 @@ async function conferirPaciente(AIdPaciente) {
     );
   }
   if (!LPaciente.ativo) {
-    throw new ErroApi(409, 'o paciente está inativo');
+    throw new ErroApi(
+      409,
+      LPaciente.motivo_inativacao === 'PEDIDO_DO_PACIENTE'
+        ? 'o paciente pediu para não receber alertas'
+        : 'o paciente está inativo'
+    );
+  }
+  return LPaciente;
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 29/10/2026 20:01
+ * * OBJECTIVE: Recusar a emissão quando o telefone do paciente não tem WhatsApp (400). Só é possível conferir com o WhatsApp do sistema conectado; desconectado, ou se a consulta falhar, a receita segue e a conferência fica para o envio.
+ */
+async function conferirWhatsApp(ATelefone) {
+  if (!whatsapp.estaConectado()) {
+    return;
+  }
+  let LNumero;
+  try {
+    LNumero = await whatsapp.verificarNumero(ATelefone);
+  } catch {
+    return;
+  }
+  if (!LNumero.existe) {
+    throw new ErroApi(400, 'o telefone do paciente não tem WhatsApp');
   }
 }
 
@@ -71,8 +98,9 @@ async function conferirMedicamentos(AItens) {
  */
 async function emitirReceita(ADados, AIdUsuario) {
   const LDados = normalizarReceita(ADados);
-  await conferirPaciente(LDados.idpaciente);
+  const LPaciente = await conferirPaciente(LDados.idpaciente);
   await conferirMedicamentos(LDados.itens);
+  await conferirWhatsApp(LPaciente.telefone);
   const LReceitaEmitida = await db.transacao(async (AConexao) => {
     const LReceita = await repository.cadastrarReceita(
       AConexao,
@@ -142,7 +170,8 @@ async function cancelarReceita(AId, AIdUsuario) {
     const LAlteradas = await repository.cancelarReceita(
       AConexao,
       AId,
-      AIdUsuario
+      AIdUsuario,
+      'USUARIO'
     );
     if (LAlteradas === 0) {
       throw new ErroApi(409, 'a receita não está mais ativa');

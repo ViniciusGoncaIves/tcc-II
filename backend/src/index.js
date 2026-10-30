@@ -5,6 +5,9 @@ const cors = require('cors');
 const app = express();
 const db = require('./configs');
 const agendador = require('./jobs/alertas');
+const tempo = require('./configs/tempo');
+const whatsapp = require('./integrations/whatsapp');
+const respostas = require('./services/respostas');
 const {
   rotaNaoEncontrada,
   tratarErros
@@ -39,5 +42,12 @@ app.use(tratarErros);
 
 app.listen(PORT, () => {
   console.log(`api rodando na porta ${PORT}`);
+  if (tempo.TESTE_ACELERADO) {
+    console.warn(
+      `MODO DE TESTE ACELERADO: 1 hora = ${tempo.MINUTOS_POR_HORA_TESTE} minuto(s). Não use com pacientes reais.`
+    );
+  }
+  whatsapp.definirTratadores(respostas.tratadores);
+  whatsapp.iniciar();
   agendador.iniciarAgendador();
 });

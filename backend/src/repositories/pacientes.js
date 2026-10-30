@@ -11,6 +11,7 @@ async function buscarPacientes(AAtivo) {
                        PACIENTE.TELEFONE,
                        PACIENTE.DATA_NASCIMENTO,
                        PACIENTE.ATIVO,
+                       PACIENTE.MOTIVO_INATIVACAO,
                        PACIENTE.DATA_CADASTRO,
                        PACIENTE.DATA_ATUALIZACAO
                   FROM PACIENTE
@@ -31,6 +32,7 @@ async function buscarPacientePorId(AId) {
                        PACIENTE.TELEFONE,
                        PACIENTE.DATA_NASCIMENTO,
                        PACIENTE.ATIVO,
+                       PACIENTE.MOTIVO_INATIVACAO,
                        PACIENTE.DATA_CADASTRO,
                        PACIENTE.DATA_ATUALIZACAO
                   FROM PACIENTE
@@ -52,6 +54,7 @@ async function cadastrarPaciente(ADados) {
                        PACIENTE.TELEFONE,
                        PACIENTE.DATA_NASCIMENTO,
                        PACIENTE.ATIVO,
+                       PACIENTE.MOTIVO_INATIVACAO,
                        PACIENTE.DATA_CADASTRO,
                        PACIENTE.DATA_ATUALIZACAO`;
   const LResultado = await db.query(LSql, [
@@ -79,6 +82,7 @@ async function alterarPaciente(AId, ADados) {
                        PACIENTE.TELEFONE,
                        PACIENTE.DATA_NASCIMENTO,
                        PACIENTE.ATIVO,
+                       PACIENTE.MOTIVO_INATIVACAO,
                        PACIENTE.DATA_CADASTRO,
                        PACIENTE.DATA_ATUALIZACAO`;
   const LResultado = await db.query(LSql, [
@@ -93,11 +97,15 @@ async function alterarPaciente(AId, ADados) {
 /**
  * * AUTHOR: Vinícius Gonçalves
  * * DATE: 20/10/2026 19:31
- * * OBJECTIVE: Ativar ou inativar um paciente e devolver o registro alterado.
+ * * OBJECTIVE: Ativar ou inativar um paciente pelo painel e devolver o registro alterado; a inativação fica registrada como feita pelo usuário e a reativação apaga o motivo.
  */
 async function alterarSituacaoPaciente(AId, AAtivo) {
   const LSql = `UPDATE PACIENTE
                    SET ATIVO = $1,
+                       MOTIVO_INATIVACAO = CASE
+                                             WHEN $1 THEN NULL
+                                             ELSE 'USUARIO'::MOTIVO_INATIVACAO
+                                           END,
                        DATA_ATUALIZACAO = NOW()
                  WHERE PACIENTE.IDPACIENTE = $2
              RETURNING PACIENTE.IDPACIENTE,
@@ -105,9 +113,40 @@ async function alterarSituacaoPaciente(AId, AAtivo) {
                        PACIENTE.TELEFONE,
                        PACIENTE.DATA_NASCIMENTO,
                        PACIENTE.ATIVO,
+                       PACIENTE.MOTIVO_INATIVACAO,
                        PACIENTE.DATA_CADASTRO,
                        PACIENTE.DATA_ATUALIZACAO`;
   const LResultado = await db.query(LSql, [AAtivo, AId]);
+  return LResultado.rows[0];
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 29/10/2026 19:37
+ * * OBJECTIVE: Inativar, dentro da transação recebida, o paciente que pediu pelo WhatsApp para não receber mais alertas.
+ */
+async function inativarPacientePorPedido(AConexao, AId) {
+  const LSql = `UPDATE PACIENTE
+                   SET ATIVO = FALSE,
+                       MOTIVO_INATIVACAO = 'PEDIDO_DO_PACIENTE',
+                       DATA_ATUALIZACAO = NOW()
+                 WHERE PACIENTE.IDPACIENTE = $1`;
+  await AConexao.query(LSql, [AId]);
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 29/10/2026 19:38
+ * * OBJECTIVE: Consultar o paciente ativo dono de um dos telefones informados.
+ */
+async function buscarPacienteAtivoPorTelefones(ATelefones) {
+  const LSql = `SELECT PACIENTE.IDPACIENTE,
+                       PACIENTE.NOME,
+                       PACIENTE.TELEFONE
+                  FROM PACIENTE
+                 WHERE PACIENTE.TELEFONE = ANY($1::VARCHAR[])
+                   AND PACIENTE.ATIVO = TRUE`;
+  const LResultado = await db.query(LSql, [ATelefones]);
   return LResultado.rows[0];
 }
 
@@ -116,5 +155,7 @@ module.exports = {
   buscarPacientePorId,
   cadastrarPaciente,
   alterarPaciente,
-  alterarSituacaoPaciente
+  alterarSituacaoPaciente,
+  inativarPacientePorPedido,
+  buscarPacienteAtivoPorTelefones
 };

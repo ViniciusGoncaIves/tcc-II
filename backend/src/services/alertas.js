@@ -1,14 +1,23 @@
 const db = require('../configs');
+const tempo = require('../configs/tempo');
 const repository = require('../repositories/alertas');
 const receitasRepository = require('../repositories/receitas');
+const enquetesRepository = require('../repositories/enquetes');
+const whatsapp = require('../integrations/whatsapp');
 
 const LIMITE_ALERTAS_POR_RODADA = 50;
-const MILISSEGUNDOS_POR_HORA = 3600000;
+// Intervalo entre uma mensagem e outra, para reduzir o risco de bloqueio do número.
+const PAUSA_ENTRE_ENVIOS_MS = 1500;
+const OPCOES_PRIMEIRA_DOSE = [
+  'Sim, tomei',
+  'Ainda não',
+  'Parar de receber alertas'
+];
 
 /**
  * * AUTHOR: Vinícius Gonçalves
  * * DATE: 22/10/2026 19:29
- * * OBJECTIVE: Montar o texto da mensagem do alerta: a dose 1 pede confirmação e, nos reenvios, avisa qual é o envio; as demais doses só lembram o horário.
+ * * OBJECTIVE: Montar o texto do alerta: na dose 1, a pergunta da enquete de confirmação, que nos reenvios avisa qual é o envio; nas demais doses, só o lembrete do horário.
  */
 function montarMensagem(AAlerta) {
   const LPrimeiroNome = AAlerta.nome_paciente.split(' ')[0];
@@ -22,7 +31,16 @@ function montarMensagem(AAlerta) {
       ? `Lembrete (envio ${LEnvio} de ${AAlerta.limite_tentativas}): `
       : '';
   const LHoras = AAlerta.intervalo_horas === 1 ? 'hora' : 'horas';
-  return `${LLembrete}Olá, ${LPrimeiroNome}! Está na hora da primeira dose do seu medicamento ${LMedicamento}, que deve ser tomado de ${AAlerta.intervalo_horas} em ${AAlerta.intervalo_horas} ${LHoras}. Por favor, confirme quando tomar.`;
+  return `${LLembrete}Olá, ${LPrimeiroNome}! Está na hora da primeira dose de ${LMedicamento} (de ${AAlerta.intervalo_horas} em ${AAlerta.intervalo_horas} ${LHoras}). Você já tomou? Para parar os lembretes, escolha a última opção ou responda PARAR.`;
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 29/10/2026 19:59
+ * * OBJECTIVE: Esperar o tempo informado, em milissegundos.
+ */
+function esperar(AMilissegundos) {
+  return new Promise((AResolver) => setTimeout(AResolver, AMilissegundos));
 }
 
 /**
@@ -48,17 +66,73 @@ async function reservarAlertasParaEnvio() {
 
 /**
  * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 29/10/2026 20:00
+ * * OBJECTIVE: Enviar um alerta reservado: confere o telefone no WhatsApp e manda a enquete (dose 1) ou o lembrete (demais doses). Telefone sem WhatsApp conta como tentativa na dose 1 e expira as demais doses; se o envio falhar, o alerta volta à situação anterior. Devolve se a mensagem saiu.
+ */
+async function enviarAlerta(AAlerta) {
+  // A receita pode ter sido cancelada, ou a dose 1 confirmada, depois da reserva.
+  const LSituacao = await repository.buscarSituacaoAlerta(AAlerta.idalerta);
+  if (LSituacao?.status !== 'ENVIADO') {
+    return false;
+  }
+  try {
+    const LNumero = await whatsapp.verificarNumero(AAlerta.telefone);
+    if (!LNumero.existe) {
+      console.log(
+        `agendador: o telefone do paciente não tem WhatsApp (alerta ${AAlerta.idalerta})`
+      );
+      if (!AAlerta.requer_confirmacao) {
+        await repository.expirarAlertaSemWhatsApp(AAlerta.idalerta);
+      }
+      return false;
+    }
+    if (AAlerta.requer_confirmacao) {
+      const LEnquete = await whatsapp.enviarEnquete(
+        LNumero.destino,
+        montarMensagem(AAlerta),
+        OPCOES_PRIMEIRA_DOSE
+      );
+      await enquetesRepository.cadastrarEnquete({
+        id_mensagem: LEnquete.idMensagem,
+        tipo: 'CONFIRMACAO_DOSE',
+        idpaciente: AAlerta.idpaciente,
+        idalerta: AAlerta.idalerta,
+        destino: LNumero.destino,
+        conteudo: LEnquete.conteudo
+      });
+    } else {
+      await whatsapp.enviarTexto(LNumero.destino, montarMensagem(AAlerta));
+    }
+    return true;
+  } catch (LErro) {
+    await repository.devolverAlerta(AAlerta);
+    console.error(
+      `agendador: erro ao enviar o alerta ${AAlerta.idalerta}: ${LErro.message}`
+    );
+    return false;
+  }
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
  * * DATE: 22/10/2026 19:32
- * * OBJECTIVE: Enviar os alertas reservados, escrevendo a mensagem de cada um no console. Devolve quantos foram enviados.
+ * * OBJECTIVE: Enviar os alertas que venceram, com uma pausa entre as mensagens. Com o WhatsApp do sistema desconectado, nada é reservado: os alertas esperam e nenhuma tentativa conta. Devolve quantos foram enviados.
  */
 async function enviarAlertasVencidos() {
-  const LAlertas = await reservarAlertasParaEnvio();
-  for (const LAlerta of LAlertas) {
-    console.log(
-      `agendador: mensagem para ${LAlerta.telefone}: ${montarMensagem(LAlerta)}`
-    );
+  if (!whatsapp.estaConectado()) {
+    return 0;
   }
-  return LAlertas.length;
+  const LAlertas = await reservarAlertasParaEnvio();
+  let LEnviados = 0;
+  for (const [LIndice, LAlerta] of LAlertas.entries()) {
+    if (LIndice > 0 && !whatsapp.MODO_SIMULADO) {
+      await esperar(PAUSA_ENTRE_ENVIOS_MS);
+    }
+    if (await enviarAlerta(LAlerta)) {
+      LEnviados++;
+    }
+  }
+  return LEnviados;
 }
 
 /**
@@ -77,7 +151,12 @@ async function encerrarReceitaSemItensAtivos(AConexao, AIdReceita) {
   if (LResumo.itens_concluidos > 0) {
     await receitasRepository.concluirReceita(AConexao, AIdReceita);
   } else {
-    await receitasRepository.cancelarReceita(AConexao, AIdReceita, null);
+    await receitasRepository.cancelarReceita(
+      AConexao,
+      AIdReceita,
+      null,
+      'PRIMEIRA_DOSE_NAO_CONFIRMADA'
+    );
   }
 }
 
@@ -152,7 +231,7 @@ async function confirmarPrimeiraDose(AIdAlerta) {
       );
       LProximaDose = new Date(
         LHorarioConfirmacao.getTime() +
-          LAlerta.intervalo_horas * MILISSEGUNDOS_POR_HORA
+          LAlerta.intervalo_horas * tempo.MILISSEGUNDOS_POR_HORA
       );
     }
     return {
@@ -190,6 +269,8 @@ async function concluirItensFinalizados() {
 }
 
 module.exports = {
+  OPCOES_PRIMEIRA_DOSE,
+  encerrarReceitaSemItensAtivos,
   enviarAlertasVencidos,
   expirarAlertas,
   confirmarPrimeiraDose,
