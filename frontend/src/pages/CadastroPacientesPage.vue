@@ -244,7 +244,14 @@ const COLUNAS = [
   {
     name: 'situacao',
     label: 'Situação',
-    field: (ALinha) => (ALinha.ativo ? 'Ativo' : 'Inativo'),
+    field: (ALinha) => {
+      if (ALinha.ativo) {
+        return 'Ativo';
+      }
+      return ALinha.motivo_inativacao === 'PEDIDO_DO_PACIENTE'
+        ? 'Inativo: não quer receber alertas'
+        : 'Inativo';
+    },
     align: 'left'
   },
   { name: 'acoes', label: 'Ações', field: () => '', align: 'right' }
@@ -421,16 +428,41 @@ function inativar(APaciente) {
 
 /**
  * * AUTHOR: Vinícius Gonçalves
- * * DATE: 25/10/2026 19:16
- * * OBJECTIVE: Reativar um paciente inativado.
+ * * DATE: 29/10/2026 20:15
+ * * OBJECTIVE: Enviar a reativação do paciente à API e avisar o resultado.
  */
-async function reativar(APaciente) {
+async function enviarReativacao(APaciente) {
   try {
     await LPacientes.reativar(APaciente.idpaciente);
     LQuasar.notify({ type: 'positive', message: 'Paciente reativado.' });
   } catch (LErro) {
     mostrarErro(LErro);
   }
+}
+
+/**
+ * * AUTHOR: Vinícius Gonçalves
+ * * DATE: 25/10/2026 19:16
+ * * OBJECTIVE: Reativar um paciente inativado; se ele mesmo pediu pelo WhatsApp para não receber alertas, pede antes a confirmação de que autorizou.
+ */
+function reativar(APaciente) {
+  if (APaciente.motivo_inativacao !== 'PEDIDO_DO_PACIENTE') {
+    enviarReativacao(APaciente);
+    return;
+  }
+  LQuasar.dialog({
+    title: 'Reativar paciente',
+    message:
+      'Este paciente pediu para não receber alertas. Reative só se ele autorizou.',
+    ok: {
+      label: 'Reativar',
+      color: 'positive',
+      unelevated: true,
+      noCaps: true
+    },
+    cancel: { label: 'Cancelar', color: 'primary', flat: true, noCaps: true },
+    persistent: true
+  }).onOk(() => enviarReativacao(APaciente));
 }
 
 onMounted(carregarLista);

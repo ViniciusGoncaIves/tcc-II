@@ -125,6 +125,12 @@ const SITUACOES_ITEM = {
   CANCELADO: { rotulo: 'Cancelado', cor: 'grey-6' }
 };
 
+// Cancelamentos sem usuário; os feitos por um usuário mostram o nome dele.
+const TEXTOS_MOTIVO_CANCELAMENTO = {
+  PRIMEIRA_DOSE_NAO_CONFIRMADA: 'Sistema (primeira dose não confirmada)',
+  PEDIDO_DO_PACIENTE: 'A pedido do paciente, pelo WhatsApp'
+};
+
 const CONFLITO = 409;
 
 const LQuasar = useQuasar();
@@ -149,8 +155,8 @@ const LInformacoes = computed(() => {
       {
         rotulo: 'Cancelada por',
         valor:
-          LDados.nome_usuario_cancelamento ||
-          'Sistema (primeira dose não confirmada)'
+          TEXTOS_MOTIVO_CANCELAMENTO[LDados.motivo_cancelamento] ||
+          LDados.nome_usuario_cancelamento
       }
     );
   }
