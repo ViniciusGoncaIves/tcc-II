@@ -1,2 +1,4 @@
 node_modules/
 .env
+# Sessão do WhatsApp: dá acesso total à conta conectada.
+sessao-whatsapp/
