@@ -5,3 +5,4 @@ database
 Dockerfile
 .dockerignore
 npm-debug.log*
+sessao-whatsapp
