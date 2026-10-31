@@ -5,6 +5,7 @@ const medicamentosRoute = require('./medicamentos');
 const usuariosRoute = require('./usuarios');
 const receitasRoute = require('./receitas');
 const whatsappRoute = require('./whatsapp');
+const painelRoute = require('./painel');
 
 module.exports = (app) => {
   autenticacaoRoute(app);
@@ -14,4 +15,5 @@ module.exports = (app) => {
   usuariosRoute(app);
   receitasRoute(app);
   whatsappRoute(app);
+  painelRoute(app);
 };
