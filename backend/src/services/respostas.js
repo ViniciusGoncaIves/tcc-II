@@ -85,7 +85,7 @@ async function responderVotoPrimeiraDose(AEnquete, AOpcao) {
     }
     if (LResultado.situacao === 'CONFIRMADA') {
       const LNome = LResultado.nome_paciente.split(' ')[0];
-      const LMedicamento = `${LResultado.nome_medicamento} ${LResultado.dose}`;
+      const LMedicamento = `${LResultado.nome_medicamento} (${LResultado.dose})`;
       await whatsapp.enviarTexto(
         AEnquete.destino,
         LResultado.proxima_dose

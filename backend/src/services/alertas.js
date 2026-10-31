@@ -21,9 +21,9 @@ const OPCOES_PRIMEIRA_DOSE = [
  */
 function montarMensagem(AAlerta) {
   const LPrimeiroNome = AAlerta.nome_paciente.split(' ')[0];
-  const LMedicamento = `${AAlerta.nome_medicamento} ${AAlerta.dose}`;
+  const LMedicamento = `${AAlerta.nome_medicamento} (${AAlerta.dose})`;
   if (!AAlerta.requer_confirmacao) {
-    return `Olá, ${LPrimeiroNome}! Está na hora do seu medicamento ${LMedicamento} (dose ${AAlerta.numero_dose} de ${AAlerta.quantidade_alerta}).`;
+    return `Olá, ${LPrimeiroNome}! Está na hora do seu medicamento ${LMedicamento}, dose ${AAlerta.numero_dose} de ${AAlerta.quantidade_alerta}.`;
   }
   const LEnvio = AAlerta.tentativas + 1;
   const LLembrete =
@@ -31,7 +31,7 @@ function montarMensagem(AAlerta) {
       ? `Lembrete (envio ${LEnvio} de ${AAlerta.limite_tentativas}): `
       : '';
   const LHoras = AAlerta.intervalo_horas === 1 ? 'hora' : 'horas';
-  return `${LLembrete}Olá, ${LPrimeiroNome}! Está na hora da primeira dose de ${LMedicamento} (de ${AAlerta.intervalo_horas} em ${AAlerta.intervalo_horas} ${LHoras}). Você já tomou? Para parar os lembretes, escolha a última opção ou responda PARAR.`;
+  return `${LLembrete}Olá, ${LPrimeiroNome}! Está na hora da primeira dose de ${LMedicamento}, de ${AAlerta.intervalo_horas} em ${AAlerta.intervalo_horas} ${LHoras}. Você já tomou? Para parar os lembretes, escolha a última opção ou responda PARAR.`;
 }
 
 /**

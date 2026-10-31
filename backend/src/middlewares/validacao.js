@@ -5,6 +5,8 @@ const FORMATO_UUID =
 const FORMATO_DATA = /^\d{4}-\d{2}-\d{2}$/;
 // 55, DDD e os 9 dígitos do celular, só números.
 const FORMATO_TELEFONE = /^55\d{11}$/;
+// Ao menos uma letra: só o número não diz a unidade da dose.
+const FORMATO_DOSE = /\p{L}/u;
 const VALORES_FILTRO_ATIVO = ['true', 'false'];
 const FORMATO_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const TAMANHO_MINIMO_SENHA = 8;
@@ -231,6 +233,12 @@ function conferirItemReceita(AItem, APosicao) {
   }
   if (!textoPreenchido(AItem.dose)) {
     throw new ErroApi(400, `item ${APosicao}: a dose é obrigatória`);
+  }
+  if (!FORMATO_DOSE.test(AItem.dose)) {
+    throw new ErroApi(
+      400,
+      `item ${APosicao}: a dose deve ter a unidade, ex.: 2 comprimidos`
+    );
   }
   if (!inteiroEntre(AItem.intervalo_horas, 1, INTERVALO_HORAS_MAXIMO)) {
     throw new ErroApi(

@@ -114,6 +114,9 @@
                 lazy-rules
                 :rules="[
                   (AValor) => !!AValor?.trim() || 'Informe a dose.',
+                  (AValor) =>
+                    FORMATO_DOSE.test(AValor) ||
+                    'Informe a dose com a unidade (ex.: 2 comprimidos).',
                   () =>
                     !itemRepetido(LIndice) ||
                     'Esse medicamento já está na receita com a mesma dose.'
@@ -210,6 +213,8 @@ import { filtrarPorNome } from '@/utils/receitas';
 // Mesmos limites da API.
 const INTERVALO_HORAS_MAXIMO = 168;
 const DURACAO_DIAS_MAXIMO = 365;
+// Ao menos uma letra: só o número não diz a unidade da dose.
+const FORMATO_DOSE = /\p{L}/u;
 
 const LQuasar = useQuasar();
 const LRouter = useRouter();
