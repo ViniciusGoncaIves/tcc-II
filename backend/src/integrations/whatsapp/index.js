@@ -372,13 +372,25 @@ function iniciar() {
 /**
  * * AUTHOR: Vinícius Gonçalves
  * * DATE: 29/10/2026 19:55
- * * OBJECTIVE: Desconectar o aparelho e apagar a sessão, para outro celular ler um QR code novo.
+ * * OBJECTIVE: Desconectar o aparelho e apagar a sessão, para outro celular ler um QR code novo. Conectado, só segue depois de o WhatsApp confirmar a remoção do aparelho; sem a confirmação, lança o erro e a sessão continua.
  */
 async function desconectar() {
   if (LSituacao === 'CONECTADO') {
-    // O aviso de desconexão chega em tratarConexao, que apaga a sessão e pede o QR code novo.
-    await LSocket.logout();
-    return;
+    // O logout da biblioteca fecha a conexão sem esperar a resposta, e o aparelho pode continuar no celular.
+    const LResposta = await LSocket.query({
+      tag: 'iq',
+      attrs: { to: LBaileys.S_WHATSAPP_NET, type: 'set', xmlns: 'md' },
+      content: [
+        {
+          tag: 'remove-companion-device',
+          attrs: { jid: LSocket.user.id, reason: 'user_initiated' }
+        }
+      ]
+    });
+    // Sem resposta dentro do prazo, a biblioteca devolve vazio em vez de lançar erro.
+    if (!LResposta) {
+      throw new Error('o WhatsApp não confirmou a remoção do aparelho');
+    }
   }
   LSocket?.end(undefined);
   apagarSessao();
