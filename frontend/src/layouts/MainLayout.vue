@@ -67,6 +67,12 @@ const ITENS_MENU = [
     icone: 'manage_accounts',
     to: '/usuarios',
     apenasAdministrador: true
+  },
+  {
+    titulo: 'WhatsApp',
+    icone: 'qr_code_2',
+    to: '/whatsapp',
+    apenasAdministrador: true
   }
 ];
 

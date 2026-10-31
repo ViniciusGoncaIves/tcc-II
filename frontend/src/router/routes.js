@@ -40,6 +40,11 @@ const routes = [
         path: 'usuarios',
         component: () => import('@/pages/CadastroUsuariosPage.vue'),
         meta: { apenasAdministrador: true }
+      },
+      {
+        path: 'whatsapp',
+        component: () => import('@/pages/ConexaoWhatsappPage.vue'),
+        meta: { apenasAdministrador: true }
       }
     ]
   },
