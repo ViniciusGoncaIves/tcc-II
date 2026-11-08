@@ -84,7 +84,7 @@ async function buscarAlertasParaEnvio(AConexao, ALimite) {
 /**
  * * AUTHOR: Vinícius Gonçalves
  * * DATE: 22/10/2026 19:17
- * * OBJECTIVE: Marcar como enviados, dentro da transação recebida, os alertas reservados para envio: soma uma tentativa, guarda o horário do primeiro envio e, na dose 1, agenda o reenvio para 1 hora depois.
+ * * OBJECTIVE: Marcar como enviados, dentro da transação recebida, os alertas reservados para envio: soma uma tentativa, guarda o horário do primeiro envio e, na dose 1, agenda o reenvio para 8 horas depois.
  */
 async function marcarAlertasEnviados(AConexao, AIdsAlertas) {
   const LSql = `UPDATE ALERTA
@@ -96,7 +96,7 @@ async function marcarAlertasEnviados(AConexao, AIdsAlertas) {
                                              THEN NOW() + $2::INTERVAL
                                            END
                  WHERE ALERTA.IDALERTA = ANY($1::UUID[])`;
-  await AConexao.query(LSql, [AIdsAlertas, tempo.UMA_HORA]);
+  await AConexao.query(LSql, [AIdsAlertas, tempo.INTERVALO_REENVIO]);
 }
 
 /**

@@ -4,6 +4,8 @@ const MINUTOS_POR_HORA_TESTE = Number(process.env.MINUTOS_POR_HORA_TESTE) || 0;
 const TESTE_ACELERADO =
   process.env.NODE_ENV !== 'production' && MINUTOS_POR_HORA_TESTE > 0;
 const SEGUNDOS_POR_HORA = TESTE_ACELERADO ? MINUTOS_POR_HORA_TESTE * 60 : 3600;
+// Espera entre um envio da enquete da dose 1 e o seguinte; com 3 envios, cobre o dia inteiro.
+const HORAS_ENTRE_REENVIOS = 8;
 
 module.exports = {
   TESTE_ACELERADO,
@@ -11,6 +13,7 @@ module.exports = {
   MILISSEGUNDOS_POR_HORA: SEGUNDOS_POR_HORA * 1000,
   // Valores no formato INTERVAL do PostgreSQL.
   UMA_HORA: `${SEGUNDOS_POR_HORA} seconds`,
+  INTERVALO_REENVIO: `${SEGUNDOS_POR_HORA * HORAS_ENTRE_REENVIOS} seconds`,
   TOLERANCIA_ATRASO: `${SEGUNDOS_POR_HORA / 2} seconds`,
   // Com a hora encolhida, o agendador confere com mais frequência para manter a precisão.
   SEGUNDOS_ENTRE_RODADAS: TESTE_ACELERADO
